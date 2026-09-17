@@ -1,0 +1,7 @@
+[
+  ["^dish", "Dish area"],
+  ["^line", "Cook line"],
+  ["^cooler", "Walk-in cooler"],
+  ["^prep", "Prep area"],
+  ["^soda", "Beverage station"]
+]

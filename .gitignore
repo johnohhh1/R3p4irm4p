@@ -1,0 +1,11 @@
+# built output — these carry real site photos, keep them out of the repo
+*.pdf
+map.html
+sample-map.html
+state.json
+pins.json
+.repairmap_tmp/
+examples/sample/
+__pycache__/
+*.pyc
+.DS_Store

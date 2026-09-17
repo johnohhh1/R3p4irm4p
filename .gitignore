@@ -9,3 +9,6 @@ examples/sample/
 __pycache__/
 *.pyc
 .DS_Store
+
+# local Word copy of the PRD - the markdown is the source of truth
+docs/*.docx

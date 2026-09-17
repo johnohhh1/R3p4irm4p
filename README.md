@@ -121,4 +121,5 @@ Colours come from `--theme` (a small JSON of hex values) so the package can carr
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Proprietary — all rights reserved. See [LICENSE](LICENSE). Not for use,
+copying or distribution without written permission.

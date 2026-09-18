@@ -2,7 +2,30 @@
 
 Pin repair photos to a floor plan, then print the result as a scope package a contractor can price.
 
-Built for a restaurant kitchen floor — dozens of photos of failed grout, no good way to say *where* each one was. It works for any building and any kind of damage: a warehouse, a store remodel punch list, roof leaks, a rental turnover.
+Built for a restaurant kitchen floor — dozens of photos of failed grout, no good way to say *where* each one was. It works for any building and any kind of damage: a warehouse, a store remodel punch list, roof leaks, a rental turnover. The same plan-plus-photos also fits operator jobs that aren't repairs — rollout validation and sticker or product placement checks — which are the next feature (see [docs/PRD.md](docs/PRD.md), section 3).
+
+**It works:** the tile contractor quoted the origin job from the report without visiting the restaurant, and discounted the price for the trip he didn't make.
+
+## The web app (start here)
+
+[`web/`](web/) is the Phase 1 app: upload a floor plan (image or PDF), add photos, pin them, download the report. It runs in the browser with no account and no server — projects are stored in the browser, and the PDF is built on your machine, so a site's photos are never uploaded anywhere.
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Two ways to capture:
+
+- **Photos first** — drop a folder of photos, drag them onto the plan.
+- **Pin first** — tap *Drop a pin*, tap the plan, name the area, then *Take photo* (opens the camera on a phone) or *Add photos* (opens the gallery). Photos are named for the area — *Dish area 1, 2, 3* instead of `IMG_4830` — and follow it if the area is renamed.
+
+Details, architecture and measured performance: [web/README.md](web/README.md).
+
+## The reference tools
+
+The Python tools below are the original proven path and the reference the web app's report is checked against. They still work for batch use.
 
 ![The map](docs/map.png)
 
@@ -65,7 +88,9 @@ The map keeps everything inside the HTML file, which is what makes it portable �
 ## Files
 
 ```
-app/map-template.html    the map itself — one file, no build step, no dependencies
+web/                     the Phase 1 web app — start here
+docs/PRD.md              product requirements, phases, status
+app/map-template.html    the original map — one file, no build step, no dependencies
 tools/build_map.py       plan + photo folder -> map.html
 tools/extract_state.py   map.html -> state.json (and optionally the photos back out)
 tools/build_pdf.py       state.json -> scope.pdf

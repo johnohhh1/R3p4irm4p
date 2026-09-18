@@ -1,6 +1,6 @@
 # R3p4irm4p — Product Requirements
 
-**Status:** draft v1 · **Owner:** John Olenski · **Date:** September 17, 2026
+**Status:** v1.1 — Phase 1 built, in testing · **Owner:** John Olenski · **Date:** September 17, 2026 (updated same day)
 **One line:** photograph what's broken, pin it to a floor plan, hand someone a report they can price.
 
 ---
@@ -16,6 +16,8 @@ Three costs, in order of what people actually complain about:
 3. **The manager's evening.** Assembling a decent request by hand takes 2–4 hours, so it doesn't get done, so the floor stays broken.
 
 **Evidence (the origin case, Sep 17 2026):** 39 phone photos of a restaurant kitchen floor → 18 pinned locations → a 23-page priced-scope package. Pinning took ~20 minutes. The document would have taken half a day by hand.
+
+**The thesis held (Sep 17 2026):** the tile contractor quoted the #605 floor from the package **without coming to the restaurant**, and offered a **lower price** because he didn't have to make the trip. He said it made his job easier. The report is worth money to the person pricing the work, not only to the person asking for it.
 
 ## 2. What the product is
 
@@ -51,6 +53,17 @@ Four users, one product. The differences are the vocabulary and the report templ
 | **GC / project punch list** | Tablet, near the end of a job | Assignable defects with status | Punch list |
 
 All four share: a plan, numbered locations, photos, condition, status, notes, a printable package.
+
+### Beyond repairs: verification jobs
+
+An operator uses the same plan-plus-photos for jobs that are not about anything being broken. These came straight from running a restaurant and are what generic inspection apps don't do:
+
+- **Rollout validation** — a boss asks you to prove a rollout landed (new equipment, a new station layout, a menu change) at every place it should have.
+- **Sticker and product placement validation** — confirm the new sticker is on every register, the signage is on every door, the product is in every spot it belongs.
+
+These are the reverse of a repair walk. A repair walk *finds* problems you didn't know about; a verification walk *confirms* things at places you know in advance. So the flow is different: set up the expected spots first, walk and mark each one **verified / missing / wrong** with a photo, and the report leads with coverage ("42 of 45 verified, 3 missing") with the misses circled on the plan. The data model already fits — an expected spot is a pin created before the walk instead of during it. A reusable spot list is what later lets one rollout go to many stores and a district manager see who is done.
+
+**Status:** not built. Next feature after the Phase 1 gates.
 
 ## 4. First-run: the chip picker
 
@@ -102,7 +115,7 @@ Python CLI + a self-contained HTML map + a 23-page PDF generator. Proven on one 
 - **Autosave** — every change; "all changes saved" state visible; nothing lost on a tab close.
 - **Empty and error states** — no plan yet, no photos yet, unreadable image, a PDF that won't render, storage full.
 
-**Out of scope:** accounts, sharing links, multi-user, mobile capture, photo annotation, multi-floor, offline sync.
+**Out of scope:** accounts, sharing links, multi-user, photo annotation, multi-floor, offline sync. *(Pin-first capture — tap the plan, name the area, take or pick photos — was pulled forward from Phase 3 because the app already runs in a phone browser; see status below.)*
 
 **Acceptance — Phase 1 is done when:**
 
@@ -112,6 +125,21 @@ Python CLI + a self-contained HTML map + a 23-page PDF generator. Proven on one 
 4. The generated PDF is **visually equal or better** than the current Python one, checked side by side on the #605 data.
 5. Every string a user sees comes from the copy deck — no placeholder text, no lorem, no developer wording.
 6. The whole flow works in Chrome, Edge, Safari and Firefox, current versions.
+
+**Status (Sep 17 2026)** — built in `web/`, running locally.
+
+| Gate | State |
+|---|---|
+| 1. Stranger → report, no instructions, < 15 min | **Met** — first outside tester produced a 9-page Scope & bid worksheet unaided in under 10 minutes |
+| 2. Tab close loses nothing | **Met** — verified |
+| 3. 200 photos, 30fps pin drag | Partly — 200-photo import 7.8s, pin drag p95 7ms (budget 33ms) on a 2024 laptop; not yet on a 4-year-old one |
+| 4. PDF equal or better than the Python one on #605 | Partly — rebuilt on the real plan, 23 pages / 8.2 MB vs 7.95 MB, same 18 locations; needs the owner's side-by-side |
+| 5. Every string from the copy deck | Not met — about ten stragglers |
+| 6. Chrome, Edge, Safari, Firefox | Not met — Chromium only |
+
+The tester's five findings (cover text overflow, condition running into status, split site naming, photos split across filename groups, run-together list labels) are fixed and re-checked on the tester's own inputs.
+
+Added beyond the original scope: **pin-first capture** with photos named for their area ("Dish area 1, 2, 3" instead of `IMG_4830`), labels that follow the area if it is renamed, and **tap-to-select across photo groups**.
 
 ### Phase 2 — Accounts and sharing
 
@@ -204,7 +232,7 @@ Deciding early is the risk, not deciding late: the price depends on whether the 
 
 | Risk | Reality | Response |
 |---|---|---|
-| Photo-app incumbents already pin photos to plans | Real, and some are well funded | Compete on the output document, not on pinning. Verify the landscape before Phase 2. |
+| Photo-app incumbents already pin photos to plans | Real, and some are well funded. **Site Audit Pro** is the restaurant-world default: ~10 years old, $12.90 one-time, iOS and Android only, slow to label and categorize. **SIAPP** pins defect photos to plans and makes PDFs in one tap. | Compete on operator workflows (verification jobs, labelling speed) and the output document, not on pinning. Desktop plus phone beats phone-only. Verify the landscape before Phase 2. |
 | Browser memory with 200 photos | Likely the first real bug | Blobs not base64, thumbnails for the tray, full-size only on demand |
 | In-browser PDF fidelity vs the Python version | Fonts and image compression will fight us | Side-by-side check on #605 data as an acceptance gate |
 | No scale on the plan | Contractors want square footage | Blank measurement column, contractor fills it. Revisit only if it blocks quotes. |
@@ -214,7 +242,7 @@ Deciding early is the risk, not deciding late: the price depends on whether the 
 
 ## 11. Open questions
 
-1. Name and domain — "R3p4irm4p" is a repo name, not a product name.
+1. Name and domain — "R3p4irm4p" is a repo name, not a product name. "Repair Map" is the working name, but it is taken (getrepairmap.com, RepairMapr, RepairMaps Inc.) and "repair" undersells the verification jobs. "Floorward" is clear but reads as flooring software. **Pinwalk** showed no existing product in a first check — needs a registrar and trademark check.
 2. Should the contractor fill prices **in the app** (sharable link, Phase 2), or stay on paper? Ask a contractor before building either.
 3. Multi-floor buildings: multiple plans per project, or a project per floor?
 4. Photo annotation (circle the crack) — how often is it actually needed?
@@ -224,9 +252,13 @@ Deciding early is the risk, not deciding late: the price depends on whether the 
 
 | # | Action | Owner | Notes |
 |---|---|---|---|
-| 1 | Send the #605 package to the tile contractor; note whether they quote without re-walking | John | Phase 1's whole premise, tested for free |
-| 2 | Hand the map to one other GM cold, watch where they stick | John | 20 minutes, no coaching |
-| 3 | Scaffold the Phase 1 app (Vite + TS + store interface + project shell) | Claude | Starts on your go |
-| 4 | Port pin/drag and the report generator into the app | Claude | Report checked against the Python output |
-| 5 | Competitive scan before Phase 2 | Claude | Who's out there, what they charge |
-| 6 | Pick a product name and domain | John | Blocks anything public-facing |
+| 1 | ~~Send the #605 package to the tile contractor~~ | John | **Done** — quoted without a visit, and discounted for it |
+| 2 | ~~Hand the map to someone cold~~ | John | **Done** — tester made a report in under 10 minutes; five findings, all fixed |
+| 3 | ~~Scaffold the Phase 1 app~~ | Claude | **Done** — `web/` |
+| 4 | ~~Port pin/drag and the report generator~~ | Claude | **Done** — checked against the #605 package |
+| 5 | Competitive scan before Phase 2 | Claude | Start from Site Audit Pro and SIAPP |
+| 6 | Pick a product name and domain | John | Blocks anything public-facing; see open question 1 |
+| 7 | Build verification jobs (rollout, sticker/product placement) | Claude | See section 3 |
+| 8 | Clear the copy-deck stragglers; run the browser matrix | Claude | Gates 5 and 6 |
+| 9 | Use pin-first capture on a real phone on a real walk | John | Exercises the camera path and real EXIF dates, neither tested yet |
+| 10 | Ask the contractor how big the discount was | John | First hard number for what the report is worth |

@@ -12,3 +12,9 @@ __pycache__/
 
 # local Word copy of the PRD - the markdown is the source of truth
 docs/*.docx
+
+# real floor plans are the chain's property - never commit one (PRD SS10)
+examples/*.png
+examples/*.jpg
+examples/*.jpeg
+examples/*.webp

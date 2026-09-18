@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.vite/
+
+# scratch data used while driving the app locally
+public/_test/

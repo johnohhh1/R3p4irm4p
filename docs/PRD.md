@@ -183,7 +183,7 @@ Written as decisions with reasons, so they can be argued with later.
 | Photo processing | Canvas/OffscreenCanvas in a worker | Keeps the UI alive while 200 photos resize |
 | Fonts | Two embedded subsets | The report must look identical everywhere |
 | Hosting | Static (Cloudflare Pages or Netlify) | Phase 1 has no backend to host |
-| Phase 2 backend | Decide at entry; Supabase is the default assumption | Auth + Postgres + object storage in one, cheap to start |
+| Phase 2 backend | Decide at entry; **not Supabase** (owner's call). Leading option: Cloudflare — Workers, D1, R2 | Photos are most of the data and R2 charges nothing for downloads, so a director browsing reports doesn't run up a bill. The `ProjectStore` seam means the choice never touches the UI |
 
 **Carrying over from the prototype:** the pin/drag interaction model, the walk-order page sequencing, the report layout, and the stable-numbering rule. These are proven — port them, don't redesign them.
 

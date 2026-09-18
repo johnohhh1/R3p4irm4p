@@ -10,10 +10,13 @@ Built for a restaurant kitchen floor — dozens of photos of failed grout, no go
 
 [`web/`](web/) is the Phase 1 app: upload a floor plan (image or PDF), add photos, pin them, download the report. It runs in the browser with no account and no server — projects are stored in the browser, and the PDF is built on your machine, so a site's photos are never uploaded anywhere.
 
+**Live:** https://r3p4irm4p.john-olenski.workers.dev — opens on a phone too.
+
 ```bash
 cd web
 npm install
-npm run dev
+npm run dev        # local
+npm run deploy     # publish to Cloudflare
 ```
 
 Two ways to capture:

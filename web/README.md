@@ -9,7 +9,12 @@ npm install
 npm run dev        # http://localhost:5173
 npm run build      # static output in dist/
 npm run typecheck
+npm run deploy     # build and publish to Cloudflare
 ```
+
+Live at **https://r3p4irm4p.john-olenski.workers.dev**, served as static assets
+from a Cloudflare Worker (`wrangler.jsonc`) with no Worker script. Cloudflare only
+serves the page: every site's plans and photos stay in the browser that made them.
 
 Nothing leaves the browser. Projects live in IndexedDB, photos as Blobs, and the
 report PDF is built client-side — a site's photos are never uploaded anywhere.

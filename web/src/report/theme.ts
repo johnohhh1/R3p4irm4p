@@ -49,6 +49,20 @@ export interface TemplateSpec {
   worksheetTitle: string
   /** Extra sign-off lines beyond the shared ones. */
   signOffLines: string[]
+  /**
+   * A validation report: coverage first, exceptions in full, and a proof grid
+   * for everything confirmed, instead of one page per location.
+   */
+  validation?: {
+    /** Column and field heading for what should be at each spot. */
+    itemLabel: string
+    /** Column and field heading for the outcome. */
+    resultLabel: string
+    /** Heading over the grid of confirmed spots. */
+    proofTitle: string
+    /** "spots verified" / "spots in place" under the big coverage number. */
+    coverageNoun: string
+  }
 }
 
 const SPECS: Record<TemplateId, TemplateSpec> = {
@@ -91,6 +105,38 @@ const SPECS: Record<TemplateId, TemplateSpec> = {
     requestedByLabel: 'Documented by',
     worksheetTitle: 'SCHEDULE OF DAMAGE',
     signOffLines: ['Policy number', 'Claim number', 'Adjuster', 'Date of loss'],
+  },
+  'rollout-validation': {
+    id: 'rollout-validation',
+    title: 'ROLLOUT VALIDATION',
+    pricing: false,
+    contractorBlock: false,
+    signOff: true,
+    requestedByLabel: 'Checked by',
+    worksheetTitle: 'CHECKLIST',
+    signOffLines: ['Reviewed by', 'Follow-up owner', 'Follow-up due'],
+    validation: {
+      itemLabel: 'ITEM',
+      resultLabel: 'RESULT',
+      proofTitle: 'PROOF OF ROLLOUT',
+      coverageNoun: 'spots verified',
+    },
+  },
+  'placement-validation': {
+    id: 'placement-validation',
+    title: 'PLACEMENT VALIDATION',
+    pricing: false,
+    contractorBlock: false,
+    signOff: true,
+    requestedByLabel: 'Checked by',
+    worksheetTitle: 'CHECKLIST',
+    signOffLines: ['Reviewed by', 'Follow-up owner', 'Follow-up due'],
+    validation: {
+      itemLabel: 'ITEM',
+      resultLabel: 'RESULT',
+      proofTitle: 'PROOF OF PLACEMENT',
+      coverageNoun: 'spots in place',
+    },
   },
   record: {
     id: 'record',

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useApp } from '../lib/state'
-import { ISSUE_SETS, SUBJECT_ISSUE_SETS } from '../lib/catalog'
+import { isValidation, ISSUE_SETS, SUBJECT_ISSUE_SETS, templatesFor } from '../lib/catalog'
 import { copy } from '../lib/copy'
 import type { IssueSetId, SubjectId, TemplateId } from '../lib/types'
 
@@ -20,6 +20,12 @@ export function Onboarding() {
   const done = () => finish(subject, sets, template)
 
   const pickSubject = (id: SubjectId) => {
+    // Validation walks have their own statuses and a single report, so the
+    // problem-family and audience questions do not apply.
+    if (isValidation(id)) {
+      finish(id, [], templatesFor(id)[0])
+      return
+    }
     setSubject(id)
     // Q1 seeds Q2 rather than deciding it — the user still sees and edits the ticks.
     setSets(SUBJECT_ISSUE_SETS[id])

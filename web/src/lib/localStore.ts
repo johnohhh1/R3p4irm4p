@@ -31,6 +31,7 @@ export function summarize(p: Project): ProjectSummary {
     name: p.name,
     site: p.report.site,
     template: p.template,
+    subject: p.subject,
     pinCount: p.pins.length,
     photoCount: p.photos.length,
     hasPlan: !!p.plan,

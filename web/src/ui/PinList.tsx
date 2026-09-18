@@ -1,5 +1,13 @@
 import { useApp } from '../lib/state'
-import { CLOSED_STATUS, DONE_COLOR, issueColor, issueLabel, statusesFor, statusLabel } from '../lib/catalog'
+import {
+  CLOSED_STATUS,
+  isValidation,
+  issueLabel,
+  pinColor,
+  RESULT_COLORS,
+  statusesFor,
+  statusLabel,
+} from '../lib/catalog'
 import { copy } from '../lib/copy'
 import { walkOrder } from '../lib/util'
 
@@ -55,7 +63,7 @@ export function PinList() {
               <button type="button" className="prow" onClick={() => select(pin.id)}>
                 <span
                   className="badge"
-                  style={{ background: closed ? DONE_COLOR : issueColor(project.issueSet, pin.issue) }}
+                  style={{ background: pinColor(project.subject, project.issueSet, pin) }}
                 >
                   {pin.no}
                 </span>
@@ -66,7 +74,16 @@ export function PinList() {
                     {pin.photoIds.length === 1 ? ' photo' : ' photos'} · stop {i + 1}
                   </span>
                 </span>
-                <span className={closed ? 'st closed' : 'st'}>{statusLabel(project.subject, pin.status)}</span>
+                <span
+                  className={closed ? 'st closed' : 'st'}
+                  style={
+                    isValidation(project.subject)
+                      ? { color: RESULT_COLORS[pin.status], borderColor: 'currentColor' }
+                      : undefined
+                  }
+                >
+                  {statusLabel(project.subject, pin.status)}
+                </span>
               </button>
             </li>
           )

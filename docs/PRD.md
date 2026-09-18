@@ -63,7 +63,14 @@ An operator uses the same plan-plus-photos for jobs that are not about anything 
 
 These are the reverse of a repair walk. A repair walk *finds* problems you didn't know about; a verification walk *confirms* things at places you know in advance. So the flow is different: set up the expected spots first, walk and mark each one **verified / missing / wrong** with a photo, and the report leads with coverage ("42 of 45 verified, 3 missing") with the misses circled on the plan. The data model already fits — an expected spot is a pin created before the walk instead of during it. A reusable spot list is what later lets one rollout go to many stores and a district manager see who is done.
 
-**Status:** not built. Next feature after the Phase 1 gates.
+**Status: built (Sep 17 2026).** Two new answers to "What are you documenting?" — *A rollout I need to validate* and *Sticker or product placement* — skip the repair questions and set up a validation walk:
+
+- Spots are dropped on the plan before the walk. Each takes a free-text item ("New allergen sticker"); a new spot starts with the last item used, so setting up forty stickers is forty taps.
+- On the walk, each spot gets a photo and one of four big result buttons. Rollout: *Not checked / Verified / Missing / Needs fixing*. Placement: *Not checked / In place / Missing / Wrong spot*. Pins are coloured by result.
+- **The report** leads with coverage ("8 of 12 spots in place · 67%") and a bar split by result, then *What needs fixing*. Then a checklist of every spot in walking order, a full page for each missing or wrong spot (with its note), a *Proof of placement / Proof of rollout* grid of confirmed spots with one photo each, and a sign-off with follow-up owner and due date.
+- **Reuse for another site** copies a finished check — same plan, same spots and items — with every result reset and no photos, ready for the next store.
+
+Not yet: sending one check to many stores and seeing them together (the district-manager view); that needs Phase 2's accounts.
 
 ## 4. First-run: the chip picker
 
@@ -258,7 +265,7 @@ Deciding early is the risk, not deciding late: the price depends on whether the 
 | 4 | ~~Port pin/drag and the report generator~~ | Claude | **Done** — checked against the #605 package |
 | 5 | Competitive scan before Phase 2 | Claude | Start from Site Audit Pro and SIAPP |
 | 6 | Pick a product name and domain | John | Blocks anything public-facing; see open question 1 |
-| 7 | Build verification jobs (rollout, sticker/product placement) | Claude | See section 3 |
+| 7 | ~~Build verification jobs (rollout, sticker/product placement)~~ | Claude | **Done** — see section 3 |
 | 8 | Clear the copy-deck stragglers; run the browser matrix | Claude | Gates 5 and 6 |
 | 9 | Use pin-first capture on a real phone on a real walk | John | Exercises the camera path and real EXIF dates, neither tested yet |
 | 10 | Ask the contractor how big the discount was | John | First hard number for what the report is worth |

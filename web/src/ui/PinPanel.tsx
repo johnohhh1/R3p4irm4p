@@ -1,7 +1,15 @@
 import { useMemo } from 'react'
 import { useApp } from '../lib/state'
 import { beginPhotoDrag } from '../lib/drag'
-import { areasFor, CLOSED_STATUS, DONE_COLOR, issueColor, issuesFor, statusesFor } from '../lib/catalog'
+import {
+  areasFor,
+  isValidation,
+  issuesFor,
+  pinColor,
+  RESULT_COLORS,
+  statusesFor,
+  validationItemsFor,
+} from '../lib/catalog'
 import { copy } from '../lib/copy'
 import { formatWhen } from '../lib/util'
 import { BlobImg, ConfirmButton, useFilePicker } from './bits'
@@ -34,15 +42,22 @@ export function PinPanel({ pinId, onZoom }: { pinId: string; onZoom: (photoId: s
   const issues = issuesFor(project.issueSet)
   const statuses = statusesFor(project.subject)
   const areaSuggestions = areasFor(project.subject)
-  const closed = pin.status === CLOSED_STATUS
   const listId = `areas-${project.subject}`
+  const validation = isValidation(project.subject)
+  // Items already used on this site come first, so the same sticker is one tap away.
+  const itemSuggestions = [
+    ...new Set([
+      ...project.pins.map((p) => p.issue.trim()).filter(Boolean),
+      ...validationItemsFor(project.subject),
+    ]),
+  ]
 
   return (
     <div className="pane">
       <div className="dhead">
         <span
           className="badge"
-          style={{ background: closed ? DONE_COLOR : issueColor(project.issueSet, pin.issue) }}
+          style={{ background: pinColor(project.subject, project.issueSet, pin) }}
         >
           {pin.no}
         </span>
@@ -70,35 +85,75 @@ export function PinPanel({ pinId, onZoom }: { pinId: string; onZoom: (photoId: s
         </datalist>
       </div>
 
-      <div className="field">
-        <label htmlFor="pin-issue">{copy.pins.issue}</label>
-        <select
-          id="pin-issue"
-          value={pin.issue}
-          onChange={(e) => updatePin(pin.id, { issue: e.target.value })}
-        >
-          {issues.map((issue) => (
-            <option key={issue.id} value={issue.id}>
-              {issue.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {validation ? (
+        <>
+          <div className="field">
+            <label htmlFor="pin-item">{copy.pins.item}</label>
+            <input
+              id="pin-item"
+              list={`items-${project.id}`}
+              value={pin.issue}
+              placeholder={copy.pins.itemPlaceholder}
+              onChange={(e) => updatePin(pin.id, { issue: e.target.value })}
+            />
+            <datalist id={`items-${project.id}`}>
+              {itemSuggestions.map((item) => (
+                <option key={item} value={item} />
+              ))}
+            </datalist>
+          </div>
 
-      <div className="field">
-        <label htmlFor="pin-status">{copy.pins.status}</label>
-        <select
-          id="pin-status"
-          value={pin.status}
-          onChange={(e) => updatePin(pin.id, { status: e.target.value })}
-        >
-          {statuses.map((status) => (
-            <option key={status.id} value={status.id}>
-              {status.label}
-            </option>
-          ))}
-        </select>
-      </div>
+          <div className="field">
+            <span className="lbl">{copy.pins.result}</span>
+            {/* Big targets: this is tapped standing in a dining room, phone in one hand. */}
+            <div className="results" role="group" aria-label={copy.pins.result}>
+              {statuses.map((status) => (
+                <button
+                  key={status.id}
+                  type="button"
+                  aria-pressed={pin.status === status.id}
+                  style={{ '--c': RESULT_COLORS[status.id] } as React.CSSProperties}
+                  onClick={() => updatePin(pin.id, { status: status.id })}
+                >
+                  {status.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="field">
+            <label htmlFor="pin-issue">{copy.pins.issue}</label>
+            <select
+              id="pin-issue"
+              value={pin.issue}
+              onChange={(e) => updatePin(pin.id, { issue: e.target.value })}
+            >
+              {issues.map((issue) => (
+                <option key={issue.id} value={issue.id}>
+                  {issue.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label htmlFor="pin-status">{copy.pins.status}</label>
+            <select
+              id="pin-status"
+              value={pin.status}
+              onChange={(e) => updatePin(pin.id, { status: e.target.value })}
+            >
+              {statuses.map((status) => (
+                <option key={status.id} value={status.id}>
+                  {status.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </>
+      )}
 
       <div className="field">
         <label htmlFor="pin-note">{copy.pins.note}</label>

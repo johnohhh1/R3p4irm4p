@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../lib/state'
 import { copy } from '../lib/copy'
-import { TEMPLATE_NAMES } from '../lib/catalog'
+import { TEMPLATE_NAMES, templatesFor } from '../lib/catalog'
 import { generateReport } from '../report/generate'
 import { downloadBlob, safeFilename, uid } from '../lib/util'
 import { Modal, useFilePicker } from './bits'
@@ -62,7 +62,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
             value={project.template}
             onChange={(e) => setTemplate(e.target.value as TemplateId)}
           >
-            {(Object.keys(TEMPLATE_NAMES) as TemplateId[]).map((id) => (
+            {templatesFor(project.subject).map((id: TemplateId) => (
               <option key={id} value={id}>
                 {TEMPLATE_NAMES[id]}
               </option>

@@ -7,7 +7,19 @@ import { PDFDocument, StandardFonts, type PDFImage } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import type { Photo, Pin, Project } from '../lib/types'
 import type { ProjectStore } from '../lib/store'
-import { CLOSED_STATUS, DONE_COLOR, issueColor, issueLabel, statusLabel, statusesFor } from '../lib/catalog'
+import {
+  CLOSED_STATUS,
+  isValidation,
+  issueLabel,
+  MISSING,
+  PENDING,
+  pinColor,
+  RESULT_COLORS,
+  statusLabel,
+  statusesFor,
+  VERIFIED,
+  WRONG,
+} from '../lib/catalog'
 import { reportCopy } from '../lib/copy'
 import { formatDate, walkOrder } from '../lib/util'
 import { photoLabel } from '../lib/labels'
@@ -109,15 +121,15 @@ export async function generateReport(
   if (!planBlob) throw new Error('plan missing')
   const planSource = await loadPlanBitmap(planBlob, project.plan)
 
-  const pinColor = (pin: Pin) =>
-    pin.status === CLOSED_STATUS ? DONE_COLOR : issueColor(project.issueSet, pin.issue)
-  const markedPng = await renderMarkedPlan(planSource, project.pins, pinColor)
+  const colorOf = (pin: Pin) => pinColor(project.subject, project.issueSet, pin)
+  const markedPng = await renderMarkedPlan(planSource, project.pins, colorOf)
   const markedImage = await doc.embedPng(await markedPng.arrayBuffer())
 
   const logo = await embedLogo(doc, store, project.report.logoBlobId)
 
   /* ------------------------------------------------------------------ cover */
-  cover(ctx, project, pins, photoCount, logo, spec.title)
+  if (spec.validation) validationCover(ctx, project, pins, logo, spec)
+  else cover(ctx, project, pins, photoCount, logo, spec.title)
 
   /* ------------------------------------------------------------ marked plan */
   onProgress?.('plan', 1, total + 3)
@@ -136,21 +148,45 @@ export async function generateReport(
     align: 'r',
   })
   planSheet.fit(markedImage, M, 76, lw - 2 * M, lh - 174, { background: theme.white })
-  planLegend(planSheet, project, pinColor)
-  planSheet.text(reportCopy.planNote, M, 52, { size: 7.5, color: theme.muted })
+  planLegend(planSheet, project, colorOf)
+  planSheet.text(spec.validation ? reportCopy.validationPlanNote : reportCopy.planNote, M, 52, {
+    size: 7.5,
+    color: theme.muted,
+  })
 
-  /* -------------------------------------------------------------- worksheet */
-  onProgress?.('worksheet', 2, total + 3)
-  worksheet(ctx, project, pins, spec)
+  if (spec.validation) {
+    /* ------------------------------------------------------------ checklist */
+    onProgress?.('checklist', 2, total + 3)
+    checklist(ctx, project, pins, spec)
 
-  /* ------------------------------------------------- one page per location */
-  for (let i = 0; i < pins.length; i++) {
-    const { pin, stop } = pins[i]
-    onProgress?.('locations', 3 + i, total + 3)
-    const locatorPng = await renderLocator(planSource, pin, theme.structure)
-    const locator = await doc.embedPng(await locatorPng.arrayBuffer())
-    const images = await loadPhotos(doc, store, pin, photoById)
-    await locationPages(ctx, project, pin, stop, total, locator, images, spec)
+    /* ------------------------------------ a full page for every exception */
+    const exceptions = pins.filter(({ pin }) => pin.status === MISSING || pin.status === WRONG)
+    for (let i = 0; i < exceptions.length; i++) {
+      const { pin, stop } = exceptions[i]
+      onProgress?.('exceptions', 3 + i, total + 3)
+      const locatorPng = await renderLocator(planSource, pin, colorOf(pin))
+      const locator = await doc.embedPng(await locatorPng.arrayBuffer())
+      const images = await loadPhotos(doc, store, pin, photoById)
+      await locationPages(ctx, project, pin, stop, total, locator, images, spec)
+    }
+
+    /* ------------------------------- proof: everything confirmed, together */
+    const confirmed = pins.filter(({ pin }) => pin.status === VERIFIED)
+    if (confirmed.length) await proofPages(ctx, project, confirmed, store, photoById, spec)
+  } else {
+    /* ------------------------------------------------------------ worksheet */
+    onProgress?.('worksheet', 2, total + 3)
+    worksheet(ctx, project, pins, spec)
+
+    /* ----------------------------------------------- one page per location */
+    for (let i = 0; i < pins.length; i++) {
+      const { pin, stop } = pins[i]
+      onProgress?.('locations', 3 + i, total + 3)
+      const locatorPng = await renderLocator(planSource, pin, theme.structure)
+      const locator = await doc.embedPng(await locatorPng.arrayBuffer())
+      const images = await loadPhotos(doc, store, pin, photoById)
+      await locationPages(ctx, project, pin, stop, total, locator, images, spec)
+    }
   }
 
   /* ---------------------------------------------------------------- signoff */
@@ -337,19 +373,28 @@ function fitList(items: string[], font: Fonts['body'], size: number, maxW: numbe
 
 /** A key to the pin colours, so a multi-issue plan reads without the app. */
 function planLegend(s: Sheet, project: Project, colorOf: (pin: Pin) => string) {
-  const closedWord = statusesFor(project.subject).find((x) => x.id === CLOSED_STATUS)?.label ?? 'Closed'
-  const issues = new Map<string, string>()
-  let anyClosed: string | null = null
-  for (const pin of project.pins) {
-    if (pin.status === CLOSED_STATUS) {
-      anyClosed = colorOf(pin)
-      continue
+  const entries: [string, string][] = []
+  if (isValidation(project.subject)) {
+    for (const status of statusesFor(project.subject)) {
+      if (project.pins.some((p) => p.status === status.id)) {
+        entries.push([status.label, RESULT_COLORS[status.id]])
+      }
     }
-    const label = issueLabel(project.issueSet, pin.issue)
-    if (!issues.has(label)) issues.set(label, colorOf(pin))
+  } else {
+    const closedWord = statusesFor(project.subject).find((x) => x.id === CLOSED_STATUS)?.label ?? 'Closed'
+    const issues = new Map<string, string>()
+    let anyClosed: string | null = null
+    for (const pin of project.pins) {
+      if (pin.status === CLOSED_STATUS) {
+        anyClosed = colorOf(pin)
+        continue
+      }
+      const label = issueLabel(project.issueSet, pin.issue)
+      if (!issues.has(label)) issues.set(label, colorOf(pin))
+    }
+    entries.push(...[...issues.entries()].sort((a, b) => a[0].localeCompare(b[0])))
+    if (anyClosed) entries.push([closedWord, anyClosed])
   }
-  const entries = [...issues.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-  if (anyClosed) entries.push([closedWord, anyClosed])
   let x = M
   const y = 62
   for (const [label, color] of entries) {
@@ -488,7 +533,8 @@ async function locationPages(
     const s = newSheet(ctx, `stop ${stop} of ${total}`)
     let y = PH - 80
 
-    s.circle(M + 15, y - 4, 15, theme.structure)
+    const validation = spec.validation
+    s.circle(M + 15, y - 4, 15, validation ? RESULT_COLORS[pin.status] ?? theme.structure : theme.structure)
     const noWidth = textWidth(String(pin.no), fonts.label, 13)
     s.text(String(pin.no), M + 15 - noWidth / 2, y - 9, { font: fonts.label, size: 13, color: theme.white })
 
@@ -507,8 +553,8 @@ async function locationPages(
     // "Chipped / broken tile" ran into STATUS. Status and photo count take the
     // room they measure; condition gets the rest and is clipped to it.
     const fields: [string, string][] = [
-      ['CONDITION', issueLabel(project.issueSet, pin.issue)],
-      ['STATUS', statusLabel(project.subject, pin.status)],
+      [validation?.itemLabel ?? 'CONDITION', issueLabel(project.issueSet, pin.issue) || '—'],
+      [validation?.resultLabel ?? 'STATUS', statusLabel(project.subject, pin.status)],
       ['PHOTOS', String(images.length)],
     ]
     const fieldGap = 20
@@ -530,7 +576,11 @@ async function locationPages(
     fields.forEach(([label], i) => s.cap(label, fieldX[i], y, 7.5, theme.muted))
     y -= 15
     fields.forEach(([, value], i) =>
-      s.text(value, fieldX[i], y, { font: fonts.bodyBold, size: 10, color: theme.structure }),
+      s.text(value, fieldX[i], y, {
+        font: fonts.bodyBold,
+        size: 10,
+        color: validation && i === 1 ? RESULT_COLORS[pin.status] ?? theme.structure : theme.structure,
+      }),
     )
     y -= 20
 
@@ -576,7 +626,7 @@ async function locationPages(
 
 function signOff(ctx: Ctx, project: Project, total: number, spec: ReturnType<typeof specFor>) {
   const { theme, fonts } = ctx
-  const s = newSheet(ctx, 'approval')
+  const s = newSheet(ctx, spec.validation ? 'sign-off' : 'approval')
   const site = project.report.site || project.name
   const date = formatDate(project.report.date || new Date().toISOString())
   // The cover shows the whole descriptor ("kitchen floor · quarry tile"); the
@@ -584,12 +634,17 @@ function signOff(ctx: Ctx, project: Project, total: number, spec: ReturnType<typ
   const surface = project.report.surface.split('·')[0].trim() || 'the areas walked'
 
   let y = PH - 90
-  s.text('APPROVAL & SIGN-OFF', M, y, { font: fonts.display, size: 15, color: theme.structure })
+  s.text(spec.validation ? 'SIGN-OFF' : 'APPROVAL & SIGN-OFF', M, y, {
+    font: fonts.display,
+    size: 15,
+    color: theme.structure,
+  })
   s.line(M, y - 10, M + 150, y - 10, theme.accent, 3)
-  y = s.para(reportCopy.approvalBody(surface, site, date, total), M, y - 40, PW - 2 * M, {
-    size: 10,
-    leading: 15,
-  }) - 6
+  const n = (id: string) => project.pins.filter((p) => p.status === id).length
+  const body = spec.validation
+    ? reportCopy.validationBody(site, date, total, n(VERIFIED), n(MISSING), n(WRONG), n(PENDING))
+    : reportCopy.approvalBody(surface, site, date, total)
+  y = s.para(body, M, y - 40, PW - 2 * M, { size: 10, leading: 15 }) - 6
   if (project.report.findings) {
     y = s.para(project.report.findings, M, y, PW - 2 * M, { size: 10, leading: 15 }) - 6
   }
@@ -607,6 +662,313 @@ function signOff(ctx: Ctx, project: Project, total: number, spec: ReturnType<typ
     y -= 34
   }
   s.text(reportCopy.snapshot(date), M, y - 10, { size: 8.5, color: theme.muted })
+}
+
+/* -------------------------------------------------------- validation pages */
+
+/**
+ * A validation cover answers one question first: how much of it is done. The
+ * coverage number, a bar split by result, then the spots that need someone.
+ */
+function validationCover(
+  ctx: Ctx,
+  project: Project,
+  pins: { pin: Pin; stop: number }[],
+  logo: PDFImage | null,
+  spec: ReturnType<typeof specFor>,
+) {
+  const { theme, fonts } = ctx
+  const v = spec.validation!
+  const s = newSheet(ctx, '')
+  const date = formatDate(project.report.date || new Date().toISOString())
+  const statuses = statusesFor(project.subject)
+  const count = (id: string) => project.pins.filter((p) => p.status === id).length
+  const total = pins.length
+  const done = count(VERIFIED)
+  const pending = count(PENDING)
+  const pct = total ? Math.round((done / total) * 100) : 0
+
+  let y = PH - 110
+  if (logo) {
+    const h = 30
+    const w = (logo.width / logo.height) * h
+    s.page.drawImage(logo, { x: M, y, width: Math.min(w, 150), height: h })
+    y -= 22
+  }
+
+  s.cap(templateName(project.template), M, y, 8, theme.accent, 1.6)
+  y -= 34
+  for (const line of titleLines(spec.title)) {
+    s.text(line, M, y, { font: fonts.display, size: 28, color: theme.structure })
+    y -= 32
+  }
+  s.line(M, y + 16, M + 150, y + 16, theme.accent, 4)
+  y -= 2
+  s.text(ctx.site, M, y, { font: fonts.bodyBold, size: 11, color: theme.ink })
+  y -= 15
+  const when = [reportCopy.checkedOn(date), project.report.surface].filter(Boolean).join(' · ')
+  for (const line of clampLines(when, fonts.body, 9.5, PW - 2 * M, 2)) {
+    s.text(line, M, y, { size: 9.5, color: theme.muted })
+    y -= 13
+  }
+  y += 13
+
+  /* coverage */
+  y -= 28
+  const cw = PW - 2 * M
+  const ch = 122
+  s.rect(M, y - ch, cw, ch, { fill: theme.card })
+  s.rect(M, y - ch, cw, ch, { stroke: theme.structure, lineWidth: 1.2 })
+  const allDone = total > 0 && done === total
+  s.text(reportCopy.coverageOf(done, total), M + 22, y - 50, {
+    font: fonts.display,
+    size: 34,
+    color: allDone ? RESULT_COLORS[VERIFIED] : theme.structure,
+  })
+  s.cap(v.coverageNoun, M + 22, y - 66, 7.5, theme.muted)
+  s.text(reportCopy.percent(pct), PW - M - 22, y - 50, {
+    font: fonts.display,
+    size: 34,
+    color: allDone ? RESULT_COLORS[VERIFIED] : theme.structure,
+    align: 'r',
+  })
+
+  // The bar: one segment per result, in walking-order-independent proportion.
+  const barX = M + 22
+  const barW = cw - 44
+  const barY = y - 90
+  let cursor = barX
+  for (const id of [VERIFIED, WRONG, MISSING, PENDING]) {
+    const n = count(id)
+    if (!n || !total) continue
+    const w = (n / total) * barW
+    s.rect(cursor, barY, w, 10, { fill: RESULT_COLORS[id] })
+    cursor += w
+  }
+  if (!total) s.rect(barX, barY, barW, 10, { fill: theme.rule })
+
+  let kx = barX
+  for (const status of statuses) {
+    const label = `${status.label} ${count(status.id)}`
+    s.circle(kx + 4, y - 106 + 3, 4, RESULT_COLORS[status.id])
+    s.text(label, kx + 12, y - 106, { size: 8.5, color: theme.ink })
+    kx += textWidth(label, fonts.body, 8.5) + 30
+  }
+  y -= ch + 24
+
+  /* what needs fixing */
+  y = s.heading(reportCopy.needsFixing, y, 100)
+  const fixes = pins.filter(({ pin }) => pin.status === MISSING || pin.status === WRONG)
+  if (!fixes.length) {
+    s.text(reportCopy.nothingToFix, M, y, { size: 9.5, color: theme.ink })
+    y -= 16
+  } else {
+    const floor = 196
+    for (let i = 0; i < fixes.length; i++) {
+      if (y < floor) {
+        s.text(reportCopy.moreOnChecklist(fixes.length - i), M, y, { size: 8.5, color: theme.muted })
+        y -= 14
+        break
+      }
+      const { pin, stop } = fixes[i]
+      s.circle(M + 4, y + 3, 4, RESULT_COLORS[pin.status])
+      const head = `Pin ${pin.no}`
+      s.text(head, M + 14, y, { font: fonts.bodyBold, size: 9, color: theme.ink })
+      const detail = [pin.area || copyUnnamed(pin), pin.issue.trim()].filter(Boolean).join(' — ')
+      const result = statusLabel(project.subject, pin.status)
+      const resultW = textWidth(result, fonts.bodyBold, 9)
+      const stopText = `stop ${stop}`
+      const stopW = textWidth(stopText, fonts.body, 8.5)
+      const dx = M + 14 + textWidth(head, fonts.bodyBold, 9) + 10
+      s.text(ellipsize(detail, fonts.body, 9, PW - M - dx - resultW - stopW - 36), dx, y, {
+        size: 9,
+        color: theme.ink,
+      })
+      s.text(result, PW - M - stopW - 16, y, {
+        font: fonts.bodyBold,
+        size: 9,
+        color: RESULT_COLORS[pin.status],
+        align: 'r',
+      })
+      s.text(stopText, PW - M, y, { size: 8.5, color: theme.muted, align: 'r' })
+      y -= 15
+    }
+  }
+  if (pending) {
+    y = s.para(reportCopy.notChecked(pending), M, y - 4, PW - 2 * M, { size: 8.8, leading: 12, color: theme.muted })
+  }
+
+  /* how to read the numbers */
+  const bh = 58
+  // Directly under the list, but never pushed into the footer or the link.
+  const boxTop = Math.max(y - 10, 62 + bh + (project.report.link ? 30 : 0))
+  s.rect(M, boxTop - bh, PW - 2 * M, bh, { fill: theme.warn })
+  s.rect(M, boxTop - bh, PW - 2 * M, bh, { stroke: theme.structure, lineWidth: 2 })
+  s.cap(reportCopy.numbersHeading, M + 14, boxTop - 16, 8.5, theme.ink, 0.8)
+  s.para(reportCopy.validationNumbers, M + 14, boxTop - 30, PW - 2 * M - 28, { size: 8.2, leading: 10.5 })
+
+  if (project.report.link) {
+    const ly = Math.max(58, boxTop - bh - 20)
+    s.text(reportCopy.liveMap, M, ly, { size: 8.5, color: theme.muted })
+    s.text(ellipsize(project.report.link, fonts.bodyBold, 8.5, PW - 2 * M), M, ly - 11, {
+      font: fonts.bodyBold,
+      size: 8.5,
+      color: theme.structure,
+    })
+  }
+}
+
+function copyUnnamed(pin: Pin): string {
+  return `Spot ${pin.no}`
+}
+
+/** Every expected spot in walking order, with the result in its colour. */
+function checklist(
+  ctx: Ctx,
+  project: Project,
+  pins: { pin: Pin; stop: number }[],
+  spec: ReturnType<typeof specFor>,
+) {
+  const { theme, fonts } = ctx
+  const v = spec.validation!
+  let s = newSheet(ctx, spec.worksheetTitle)
+  let y = PH - 80
+
+  s.text(spec.worksheetTitle, M, y, { font: fonts.display, size: 15, color: theme.structure })
+  s.line(M, y - 10, M + 120, y - 10, theme.accent, 3)
+  y -= 26
+  s.text(reportCopy.checklistNote, M, y, { size: 9, color: theme.ink })
+  y -= 22
+
+  const cols: [string, number][] = [
+    ['STOP', 36],
+    ['PIN', 30],
+    ['LOCATION', 150],
+    [v.itemLabel, 150],
+    [v.resultLabel, 92],
+    ['PHOTOS', 46],
+  ]
+  const xs: { name: string; x: number; w: number }[] = []
+  let x = M
+  for (const [name, w] of cols) {
+    xs.push({ name, x, w })
+    x += w
+  }
+  const rh = 22
+  const header = (sheet: Sheet, atY: number) => {
+    sheet.rect(M, atY - rh, x - M, rh, { fill: theme.structure })
+    for (const col of xs) sheet.cap(col.name, col.x + 6, atY - 14, 7, theme.white, 0.8)
+  }
+  header(s, y)
+  y -= rh
+
+  pins.forEach(({ pin, stop }, i) => {
+    if (y < 70) {
+      s = newSheet(ctx, spec.worksheetTitle)
+      y = PH - 90
+      header(s, y)
+      y -= rh
+    }
+    s.rect(M, y - rh, x - M, rh, { fill: i % 2 === 0 ? theme.white : theme.card })
+    const cells = [
+      String(stop),
+      String(pin.no),
+      pin.area || copyUnnamed(pin),
+      pin.issue.trim() || '—',
+      statusLabel(project.subject, pin.status),
+      String(pin.photoIds.length),
+    ]
+    xs.forEach((col, ci) => {
+      const strong = ci < 2 || ci === 4
+      const font = strong ? fonts.bodyBold : fonts.body
+      if (ci === 4) {
+        s.circle(col.x + 9, y - 12, 3.5, RESULT_COLORS[pin.status] ?? theme.muted)
+        s.text(ellipsize(cells[ci], font, 8.5, col.w - 22), col.x + 17, y - 15, {
+          font,
+          size: 8.5,
+          color: RESULT_COLORS[pin.status] ?? theme.ink,
+        })
+        return
+      }
+      s.text(ellipsize(cells[ci], font, 8.5, col.w - 10), col.x + 6, y - 15, {
+        font,
+        size: 8.5,
+        color: ci < 2 ? theme.structure : theme.ink,
+      })
+    })
+    s.line(M, y - rh, x, y - rh, theme.rule, 0.5)
+    y -= rh
+  })
+}
+
+/**
+ * Proof for everything confirmed: one photo per spot, six to a page. A boss
+ * asking "did it go in everywhere" wants to flip, not read.
+ */
+async function proofPages(
+  ctx: Ctx,
+  project: Project,
+  confirmed: { pin: Pin; stop: number }[],
+  store: ProjectStore,
+  photoById: Map<string, Photo>,
+  spec: ReturnType<typeof specFor>,
+) {
+  const { theme, fonts } = ctx
+  const v = spec.validation!
+  const perPage = 6
+  const colsN = 2
+  const gap = 14
+  const capH = 34
+  const cellW = (PW - 2 * M - gap) / colsN
+
+  for (let start = 0; start < confirmed.length; start += perPage) {
+    const s = newSheet(ctx, v.proofTitle)
+    let y = PH - 80
+    s.text(v.proofTitle, M, y, { font: fonts.display, size: 15, color: theme.structure })
+    s.line(M, y - 10, M + 120, y - 10, theme.accent, 3)
+    y -= 26
+    s.text(reportCopy.proofNote(confirmed.length), M, y, { size: 9, color: theme.ink })
+    y -= 18
+
+    const rowsN = 3
+    const cellH = (y - 58 - (rowsN - 1) * gap) / rowsN
+    const imgH = cellH - capH
+
+    const page = confirmed.slice(start, start + perPage)
+    for (let i = 0; i < page.length; i++) {
+      const { pin, stop } = page[i]
+      const cx = M + (i % colsN) * (cellW + gap)
+      const top = y - Math.floor(i / colsN) * (cellH + gap)
+      const imgY = top - imgH
+
+      // One photo is the proof; only the first is embedded, which keeps a
+      // 45-spot rollout report light.
+      const [first] = await loadPhotos(ctx.doc, store, { ...pin, photoIds: pin.photoIds.slice(0, 1) }, photoById)
+      if (first) {
+        s.fit(first.image, cx, imgY, cellW, imgH, { background: theme.card, border: theme.rule })
+      } else {
+        s.rect(cx, imgY, cellW, imgH, { fill: theme.card })
+        s.rect(cx, imgY, cellW, imgH, { stroke: theme.rule, lineWidth: 0.8 })
+        s.text(reportCopy.noPhoto, cx + cellW / 2, imgY + imgH / 2 - 3, {
+          size: 9,
+          color: theme.accent,
+          align: 'c',
+        })
+      }
+
+      const head = `Pin ${pin.no} · Stop ${stop}`
+      s.text(head, cx, imgY - 12, { font: fonts.bodyBold, size: 8.5, color: theme.structure })
+      const result = statusLabel(project.subject, pin.status)
+      s.text(result, cx + cellW, imgY - 12, {
+        font: fonts.bodyBold,
+        size: 8.5,
+        color: RESULT_COLORS[VERIFIED],
+        align: 'r',
+      })
+      const detail = [pin.area || copyUnnamed(pin), pin.issue.trim()].filter(Boolean).join(' — ')
+      s.text(ellipsize(detail, fonts.body, 8.5, cellW), cx, imgY - 24, { size: 8.5, color: theme.muted })
+    }
+  }
 }
 
 /* ----------------------------------------------------------------- loaders */

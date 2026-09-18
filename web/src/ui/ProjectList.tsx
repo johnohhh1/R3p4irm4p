@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../lib/state'
 import { copy } from '../lib/copy'
-import { TEMPLATE_NAMES } from '../lib/catalog'
+import { isValidation, TEMPLATE_NAMES } from '../lib/catalog'
 import { importProject } from '../lib/rmap'
 import { formatWhen } from '../lib/util'
 import { ConfirmButton, useFilePicker } from './bits'
@@ -13,6 +13,7 @@ export function ProjectList() {
   const deleteProject = useApp((s) => s.deleteProject)
   const renameProject = useApp((s) => s.renameProject)
   const replaceProject = useApp((s) => s.replaceProject)
+  const duplicateProject = useApp((s) => s.duplicateProject)
   const fail = useApp((s) => s.fail)
 
   const [renaming, setRenaming] = useState<string | null>(null)
@@ -92,6 +93,16 @@ export function ProjectList() {
                 >
                   {copy.projects.rename}
                 </button>
+                {isValidation(p.subject) && (
+                  <button
+                    type="button"
+                    className="btn small"
+                    title={copy.validation.duplicateHelp}
+                    onClick={() => void duplicateProject(p.id)}
+                  >
+                    {copy.validation.duplicate}
+                  </button>
+                )}
                 <ConfirmButton
                   label={copy.projects.remove}
                   confirmLabel={copy.projects.removeConfirmYes}

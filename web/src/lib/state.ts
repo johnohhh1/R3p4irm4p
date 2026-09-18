@@ -19,7 +19,7 @@ import { localStore } from './localStore'
 import { isQuotaError, type ProjectStore } from './store'
 import { blobUrl, releaseAll, releaseUrl } from './blobUrls'
 import { copy } from './copy'
-import { issuesFor, statusesFor, SUBJECT_ISSUE_SETS } from './catalog'
+import { isValidation, issuesFor, statusesFor, SUBJECT_ISSUE_SETS, templatesFor } from './catalog'
 import { clamp, nowIso, todayIso, uid } from './util'
 import { loadPlan, type LoadedPlan } from './plan'
 import { isImageFile, preparePhoto } from './images'
@@ -64,6 +64,8 @@ interface AppState {
   createProject(name?: string): Promise<string>
   renameProject(id: string, name: string): Promise<void>
   deleteProject(id: string): Promise<void>
+  /** A fresh walk of the same site layout: plan and spots kept, results and photos cleared. */
+  duplicateProject(id: string): Promise<void>
 
   finishOnboarding(subject: SubjectId, sets: IssueSetId[], template: TemplateId): void
   setIssueSets(sets: IssueSetId[]): void
@@ -182,6 +184,7 @@ export const useApp = create<AppState>((set, get) => {
                 name: project.name,
                 site: project.report.site,
                 template: project.template,
+                subject: project.subject,
                 pinCount: project.pins.length,
                 photoCount: project.photos.length,
                 hasPlan: !!project.plan,
@@ -274,6 +277,7 @@ export const useApp = create<AppState>((set, get) => {
             name: project.name,
             site: '',
             template: project.template,
+            subject: project.subject,
             pinCount: 0,
             photoCount: 0,
             hasPlan: false,
@@ -318,17 +322,59 @@ export const useApp = create<AppState>((set, get) => {
       set((s) => ({ projects: s.projects.filter((p) => p.id !== id) }))
     },
 
+    async duplicateProject(id) {
+      const store = get().store
+      const source = get().project?.id === id ? get().project : await store.get(id)
+      if (!source) return
+      const plan = source.plan
+      let planBlobId: string | null = null
+      if (plan) {
+        // Each site owns its blobs outright, so deleting one never breaks the other.
+        const blob = await store.getBlob(plan.blobId)
+        if (blob) {
+          planBlobId = uid('plan')
+          await store.putBlob(planBlobId, blob)
+        }
+      }
+      const statuses = statusesFor(source.subject)
+      const now = nowIso()
+      const copyOf: Project = {
+        ...source,
+        id: uid('proj'),
+        name: copy.validation.copyName(source.name),
+        plan: plan && planBlobId ? { ...plan, blobId: planBlobId } : null,
+        pins: source.pins.map((pin) => ({
+          ...pin,
+          status: statuses[0]?.id ?? pin.status,
+          note: '',
+          photoIds: [],
+          createdAt: now,
+          updatedAt: now,
+        })),
+        photos: [],
+        order: [],
+        report: { ...source.report, date: todayIso(), findings: '', logoBlobId: null },
+        createdAt: now,
+        updatedAt: now,
+      }
+      await store.put(copyOf)
+      set({ projects: await store.list(), toast: copy.validation.duplicated(copyOf.name) })
+    },
+
     finishOnboarding(subject, sets, template) {
+      const validation = isValidation(subject)
       touch((d) => {
         d.subject = subject
         d.issueSet = sets.length ? sets : SUBJECT_ISSUE_SETS[subject]
-        d.template = template
+        // A validation walk has exactly one report shape, so the answer is implied.
+        d.template = validation ? templatesFor(subject)[0] : template
         d.onboarded = true
-        // Re-home any pin whose issue or status is no longer offered.
+        // Re-home any pin whose issue or status is no longer offered. A validation
+        // item is free text ("New allergen sticker"), so it is left alone.
         const issues = issuesFor(d.issueSet).map((i) => i.id)
         const statuses = statusesFor(d.subject).map((s) => s.id)
         for (const pin of d.pins) {
-          if (!issues.includes(pin.issue)) pin.issue = issues[0] ?? 'other'
+          if (!validation && !issues.includes(pin.issue)) pin.issue = issues[0] ?? 'other'
           if (!statuses.includes(pin.status)) pin.status = statuses[0] ?? 'open'
         }
       })
@@ -494,6 +540,11 @@ export const useApp = create<AppState>((set, get) => {
       const statuses = statusesFor(project.subject)
       const first = photoIds[0] ? project.photos.find((p) => p.id === photoIds[0]) : undefined
       const id = uid('k')
+      // A rollout is usually one thing checked at many spots, so a new spot starts
+      // with whatever the last spot was checking. Setting up 40 stickers is 40 taps.
+      const lastItem = isValidation(project.subject)
+        ? ([...project.pins].reverse().find((p) => p.issue.trim())?.issue ?? '')
+        : null
       touch((d) => {
         const pin: Pin = {
           id,
@@ -502,7 +553,7 @@ export const useApp = create<AppState>((set, get) => {
           y: clamp(y, 0, 1),
           // A new pin borrows its name from the photo that made it, as the prototype does.
           area: first ? titleCase(first.name.replace(/[_-]?\d+$/, '').replace(/[_-]+/g, ' ')) : '',
-          issue: issues[0]?.id ?? 'other',
+          issue: lastItem ?? issues[0]?.id ?? 'other',
           status: statuses[0]?.id ?? 'open',
           note: '',
           photoIds: [...photoIds],

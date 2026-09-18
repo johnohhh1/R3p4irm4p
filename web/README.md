@@ -57,6 +57,12 @@ Two ways, and they mix freely:
 
 A pinned photo is labelled for its area — *Dish area 3* — everywhere: the pin panel, the photo viewer and the report. The label is derived from the pin rather than stored, so renaming the area relabels every photo; the original file name is kept on the photo.
 
+## Validation walks
+
+Choosing *A rollout I need to validate* or *Sticker or product placement* at setup turns the site into a validation walk: spots are set up before the walk, each with a free-text item, and each is marked with one of four results. The report (`rollout-validation` / `placement-validation` in `src/report/theme.ts`) leads with coverage, lists what needs fixing, gives each missing or wrong spot a full page, and shows every confirmed spot in a proof grid. *Reuse for another site* on the site list copies the plan and spots with every result reset.
+
+Validation statuses share fixed ids (`pending`, `verified`, `missing`, `wrong`) so coverage counts the same way for both jobs; only the words differ (`src/lib/catalog.ts`).
+
 ## Measured so far
 
 On a 2024 laptop, Chromium:
@@ -79,4 +85,4 @@ The tester's five findings are fixed and were re-checked on the tester's own inp
 - **Gate 3** — not yet measured on a four-year-old laptop.
 - **Gate 4** — the side-by-side against the #605 package needs the owner's eyes.
 - **Not yet run for real:** EXIF dates from real phone photos, the phone camera itself, opening a `.rmap` back up, PDF plan upload, replace-plan, keyboard nudge, logo and accent, the storage-full path, and four of the five report templates.
-- **Next feature:** verification jobs — rollout validation and sticker/product placement — set up expected spots before the walk, mark each verified / missing / wrong, report coverage. See [../docs/PRD.md](../docs/PRD.md), section 3.
+- **Not yet:** one validation check sent to many stores and viewed together — needs Phase 2's accounts.

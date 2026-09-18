@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useApp } from '../lib/state'
 import { beginPinDrag, currentDrag, subscribeDrag, type Drag } from '../lib/drag'
-import { CLOSED_STATUS, DONE_COLOR, issueColor, issuesFor } from '../lib/catalog'
+import {
+  CLOSED_STATUS,
+  DONE_COLOR,
+  isValidation,
+  issuesFor,
+  pinColor,
+  RESULT_COLORS,
+  statusesFor,
+} from '../lib/catalog'
 import { copy } from '../lib/copy'
 import { clamp } from '../lib/util'
 import { BlobImg, useFilePicker } from './bits'
@@ -130,11 +138,14 @@ export function PlanStage() {
     void addPhotos(files)
   }
 
+  const validation = isValidation(project.subject)
   const hint = armed
     ? armed.kind === 'pin'
       ? copy.map.hintArmedPin
       : copy.map.hintArmedPhoto(armed.ids.length)
-    : copy.map.hintEdit
+    : validation
+      ? copy.validation.hintSetup
+      : copy.map.hintEdit
 
   return (
     <section className="mapwrap" aria-label="Floor plan">
@@ -215,8 +226,7 @@ export function PlanStage() {
             <BlobImg blobId={plan.blobId} alt="Floor plan" />
             <div className="pins">
               {project.pins.map((pin) => {
-                const closed = pin.status === CLOSED_STATUS
-                const color = closed ? DONE_COLOR : issueColor(project.issueSet, pin.issue)
+                const color = pinColor(project.subject, project.issueSet, pin)
                 const isDragging = drag?.type === 'pin' && drag.pinId === pin.id
                 return (
                   <button
@@ -256,7 +266,19 @@ export function PlanStage() {
         )}
       </div>
 
-      {plan && project.pins.length > 0 && (
+      {plan && project.pins.length > 0 && validation && (
+        <div className="legend">
+          {statusesFor(project.subject)
+            .filter((status) => project.pins.some((p) => p.status === status.id))
+            .map((status) => (
+              <span key={status.id}>
+                <i className="dot" style={{ background: RESULT_COLORS[status.id] }} />
+                {status.label}
+              </span>
+            ))}
+        </div>
+      )}
+      {plan && project.pins.length > 0 && !validation && (
         <div className="legend">
           {issues
             .filter((issue) => project.pins.some((p) => p.issue === issue.id && p.status !== CLOSED_STATUS))

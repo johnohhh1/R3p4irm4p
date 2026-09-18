@@ -46,6 +46,8 @@ export const copy = {
         { id: 'property' as SubjectId, label: 'A property or rental' },
         { id: 'punchlist' as SubjectId, label: 'A construction punch list' },
         { id: 'bid' as SubjectId, label: 'A job I am bidding' },
+        { id: 'rollout' as SubjectId, label: 'A rollout I need to validate' },
+        { id: 'placement' as SubjectId, label: 'Sticker or product placement' },
         { id: 'other' as SubjectId, label: 'Something else' },
       ],
     },
@@ -132,6 +134,19 @@ export const copy = {
     back: 'Back to the list',
     created: (when: string) => `Marked ${when}`,
     spotNo: (n: number) => `Spot ${n}`,
+    item: 'What should be here',
+    itemPlaceholder: 'New allergen sticker',
+    result: 'Result',
+  },
+
+  validation: {
+    hintSetup:
+      'Tap "Drop a pin" and tap the plan for every spot that should have it. Then walk, take a photo, and mark each one.',
+    coverage: (done: number, total: number) => `${done} of ${total} checked`,
+    duplicate: 'Reuse for another site',
+    duplicateHelp: 'Same plan and spots, every result reset to Not checked, no photos.',
+    duplicated: (name: string) => `${name} is ready to walk.`,
+    copyName: (name: string) => `${name} — copy`,
   },
 
   report: {
@@ -207,6 +222,25 @@ export const reportCopy = {
     ['Sign-off page', 'Who documented it, and when.'],
   ] as [string, string][],
   liveMap: 'Live photo map (internal):',
+  coverageOf: (done: number, total: number) => `${done} of ${total}`,
+  percent: (pct: number) => `${pct}%`,
+  needsFixing: 'What needs fixing',
+  nothingToFix: 'Nothing to fix. Every spot that was checked is in place.',
+  notChecked: (n: number) =>
+    `${n} ${n === 1 ? 'spot was' : 'spots were'} not checked yet and ${n === 1 ? 'is' : 'are'} listed on the checklist.`,
+  noPhoto: 'No photo taken',
+  checklistNote: 'Every spot set up for this check, in walking order.',
+  validationPlanNote: 'Each pin is a spot that was set up for this check; its colour is the result.',
+  proofNote: (n: number) => `${n} confirmed ${n === 1 ? 'spot' : 'spots'}, one photo each.`,
+  moreOnChecklist: (n: number) => `+${n} more on the checklist`,
+  checkedOn: (date: string) => `Checked ${date}`,
+  validationNumbers:
+    'Pin numbers come from the live map and never change. Pages run in walking order through the building, so the numbers themselves are not in order. Missing and wrong spots get a full page each; confirmed spots are shown together as proof.',
+  validationBody: (site: string, date: string, total: number, done: number, missing: number, wrong: number, pending: number) =>
+    `This report validates ${total} ${total === 1 ? 'spot' : 'spots'} at ${site} as of ${date}. ` +
+    `${done} ${done === 1 ? 'was' : 'were'} confirmed, ${missing} missing, ${wrong} ${wrong === 1 ? 'needs' : 'need'} fixing` +
+    (pending ? `, and ${pending} ${pending === 1 ? 'was' : 'were'} not checked.` : '.') +
+    ' Photographs are unedited.',
   oneCondition: (kind: string) => `Every location is ${kind.toLowerCase()}.`,
   manyConditions: (kinds: string) => `Conditions found: ${kinds}.`,
   numbersExplainer:

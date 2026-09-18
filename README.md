@@ -2,7 +2,7 @@
 
 Pin repair photos to a floor plan, then print the result as a scope package a contractor can price.
 
-Built for a restaurant kitchen floor — dozens of photos of failed grout, no good way to say *where* each one was. It works for any building and any kind of damage: a warehouse, a store remodel punch list, roof leaks, a rental turnover. The same plan-plus-photos also fits operator jobs that aren't repairs — rollout validation and sticker or product placement checks — which are the next feature (see [docs/PRD.md](docs/PRD.md), section 3).
+Built for a restaurant kitchen floor — dozens of photos of failed grout, no good way to say *where* each one was. It works for any building and any kind of damage: a warehouse, a store remodel punch list, roof leaks, a rental turnover. The same plan-plus-photos also runs operator jobs that aren't repairs: **rollout validation** and **sticker or product placement validation** — set up the spots where something should be, walk and mark each one, and get a coverage report with proof photos (see [docs/PRD.md](docs/PRD.md), section 3).
 
 **It works:** the tile contractor quoted the origin job from the report without visiting the restaurant, and discounted the price for the trip he didn't make.
 

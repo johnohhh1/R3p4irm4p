@@ -6,9 +6,22 @@ export type TemplateId =
   | 'condition-report'
   | 'insurance'
   | 'record'
+  | 'rollout-validation'
+  | 'placement-validation'
 
-/** Q1 — what is being documented. Seeds issue sets and area suggestions. */
-export type SubjectId = 'restaurant' | 'property' | 'punchlist' | 'bid' | 'other'
+/**
+ * Q1 — what is being documented. Seeds issue sets and area suggestions.
+ * `rollout` and `placement` are validation jobs: the spots are known before the
+ * walk and each one is confirmed, rather than problems being found as you go.
+ */
+export type SubjectId =
+  | 'restaurant'
+  | 'property'
+  | 'punchlist'
+  | 'bid'
+  | 'other'
+  | 'rollout'
+  | 'placement'
 
 /** Q2 — families of problems. Each contributes issues to the pin panel. */
 export type IssueSetId =
@@ -99,6 +112,7 @@ export interface ProjectSummary {
   name: string
   site: string
   template: TemplateId
+  subject: SubjectId
   pinCount: number
   photoCount: number
   hasPlan: boolean

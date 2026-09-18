@@ -2,7 +2,7 @@
  * The vocabulary. Q1/Q2/Q3 answers pick from here; nothing else in the app
  * hard-codes an issue, a status word or an area name.
  */
-import type { IssueSetId, SubjectId, TemplateId } from './types'
+import type { IssueSetId, Pin, SubjectId, TemplateId } from './types'
 
 export interface IssueDef {
   id: string
@@ -141,8 +141,74 @@ const STATUS_PUNCHLIST: StatusDef[] = [
   { id: 'done', label: 'Accepted' },
 ]
 
+/*
+ * Validation walks share four outcomes with fixed ids, so coverage can be
+ * counted the same way for both; only the words change with the job.
+ */
+export const PENDING = 'pending'
+export const VERIFIED = 'verified'
+export const MISSING = 'missing'
+export const WRONG = 'wrong'
+
+const STATUS_ROLLOUT: StatusDef[] = [
+  { id: PENDING, label: 'Not checked' },
+  { id: VERIFIED, label: 'Verified' },
+  { id: MISSING, label: 'Missing' },
+  { id: WRONG, label: 'Needs fixing' },
+]
+
+const STATUS_PLACEMENT: StatusDef[] = [
+  { id: PENDING, label: 'Not checked' },
+  { id: VERIFIED, label: 'In place' },
+  { id: MISSING, label: 'Missing' },
+  { id: WRONG, label: 'Wrong spot' },
+]
+
+/** Result colours for a validation walk: the colour is the answer. */
+export const RESULT_COLORS: Record<string, string> = {
+  [PENDING]: '#8A8F98',
+  [VERIFIED]: '#2B8653',
+  [MISSING]: '#CC2F2F',
+  [WRONG]: '#C07C00',
+}
+
+export function isValidation(subject: SubjectId): boolean {
+  return subject === 'rollout' || subject === 'placement'
+}
+
 export function statusesFor(subject: SubjectId): StatusDef[] {
+  if (subject === 'rollout') return STATUS_ROLLOUT
+  if (subject === 'placement') return STATUS_PLACEMENT
   return subject === 'punchlist' ? STATUS_PUNCHLIST : STATUS_DEFAULT
+}
+
+/**
+ * The colour a pin is drawn in, on screen and in print. A repair walk colours
+ * by what is wrong; a validation walk colours by the result.
+ */
+export function pinColor(subject: SubjectId, sets: IssueSetId[], pin: Pin): string {
+  if (isValidation(subject)) return RESULT_COLORS[pin.status] ?? RESULT_COLORS[PENDING]
+  return pin.status === CLOSED_STATUS ? DONE_COLOR : issueColor(sets, pin.issue)
+}
+
+/**
+ * What a validation walk is checking at each spot. Free text, because a rollout
+ * is usually one or two specific things ("New allergen sticker") repeated across
+ * many spots; these only seed the suggestions.
+ */
+const VALIDATION_ITEMS: Record<'rollout' | 'placement', string[]> = {
+  rollout: [
+    'New equipment', 'Station setup', 'Menu board', 'Signage', 'POS / tech',
+    'Smallwares', 'Recipe card', 'Uniform',
+  ],
+  placement: [
+    'Allergen sticker', 'Promo sticker', 'Price label', 'Table tent', 'Menu board',
+    'Product display', 'Safety sign', 'Hand-wash sign',
+  ],
+}
+
+export function validationItemsFor(subject: SubjectId): string[] {
+  return subject === 'rollout' || subject === 'placement' ? VALIDATION_ITEMS[subject] : []
 }
 
 export function statusLabel(subject: SubjectId, id: string): string {
@@ -173,6 +239,14 @@ const AREAS: Record<SubjectId, string[]> = {
     'Exterior', 'Roof', 'Mechanical',
   ],
   other: ['Entry', 'Main area', 'Back area', 'Storage', 'Restrooms', 'Exterior'],
+  rollout: [
+    'Front counter', 'Host stand', 'Bar', 'Expo', 'Cook line', 'Dish area',
+    'Walk-in cooler', 'Prep area', 'To-Go', 'Dining room', 'Patio', 'Restrooms', 'Office',
+  ],
+  placement: [
+    'Entry doors', 'Host stand', 'Front counter', 'Register', 'Bar', 'Booths',
+    'Dining room', 'Patio', 'Expo', 'To-Go', 'Restrooms', 'Hand sink', 'Walk-in cooler',
+  ],
 }
 
 export function areasFor(subject: SubjectId): string[] {
@@ -188,6 +262,9 @@ export const SUBJECT_ISSUE_SETS: Record<SubjectId, IssueSetId[]> = {
   punchlist: ['finish', 'walls', 'equipment'],
   bid: ['floors', 'walls', 'finish'],
   other: ['floors', 'walls'],
+  // Validation walks do not use problem families; the item is typed per spot.
+  rollout: [],
+  placement: [],
 }
 
 export const TEMPLATE_NAMES: Record<TemplateId, string> = {
@@ -196,6 +273,19 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   'condition-report': 'Condition report',
   insurance: 'Condition report — insurance',
   record: 'Site record',
+  'rollout-validation': 'Rollout validation',
+  'placement-validation': 'Placement validation',
+}
+
+const REPAIR_TEMPLATES: TemplateId[] = [
+  'repair-request', 'scope-bid', 'condition-report', 'insurance', 'record',
+]
+
+/** The templates that make sense for this kind of walk. */
+export function templatesFor(subject: SubjectId): TemplateId[] {
+  if (subject === 'rollout') return ['rollout-validation']
+  if (subject === 'placement') return ['placement-validation']
+  return REPAIR_TEMPLATES
 }
 
 /** Templates that print blank quantity and price columns. */

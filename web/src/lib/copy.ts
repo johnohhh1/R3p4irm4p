@@ -233,7 +233,10 @@ export const reportCopy = {
   noPhoto: 'No photo taken',
   checklistNote: 'Every spot set up for this check, in walking order.',
   validationPlanNote: 'Each pin is a spot that was set up for this check; its colour is the result.',
-  proofNote: (n: number) => `${n} confirmed ${n === 1 ? 'spot' : 'spots'}, one photo each.`,
+  proofNote: (n: number) => `${n} confirmed ${n === 1 ? 'spot' : 'spots'}, with every photo taken.`,
+  unmarkedTitle: 'PHOTOGRAPHED, NOT MARKED',
+  unmarkedNote: (n: number) =>
+    `${n} ${n === 1 ? 'spot has' : 'spots have'} photos but no result yet. Mark ${n === 1 ? 'it' : 'them'} in the app to count toward coverage.`,
   moreOnChecklist: (n: number) => `+${n} more on the checklist`,
   checkedOn: (date: string) => `Checked ${date}`,
   validationNumbers:

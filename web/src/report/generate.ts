@@ -177,7 +177,23 @@ export async function generateReport(
 
     /* ------------------------------- proof: everything confirmed, together */
     const confirmed = pins.filter(({ pin }) => pin.status === VERIFIED)
-    if (confirmed.length) await proofPages(ctx, project, confirmed, store, photoById, spec)
+    if (confirmed.length) {
+      await spotGallery(ctx, project, confirmed, store, photoById, {
+        title: spec.validation.proofTitle,
+        note: reportCopy.proofNote(confirmed.length),
+      })
+    }
+
+    /* ---------------------- photographed, but nobody tapped a result yet */
+    // A spot with photos and no result is usually done and just not marked;
+    // its photos belong in the report rather than silently left out.
+    const unmarked = pins.filter(({ pin }) => pin.status === PENDING && pin.photoIds.length)
+    if (unmarked.length) {
+      await spotGallery(ctx, project, unmarked, store, photoById, {
+        title: reportCopy.unmarkedTitle,
+        note: reportCopy.unmarkedNote(unmarked.length),
+      })
+    }
   } else {
     /* ------------------------------------------------------------ worksheet */
     onProgress?.('worksheet', 2, total + 3)
@@ -907,72 +923,86 @@ function checklist(
 }
 
 /**
- * Proof for everything confirmed: one photo per spot, six to a page. A boss
- * asking "did it go in everywhere" wants to flip, not read.
+ * Every photo of a run of spots as one grid, in walking order, three across.
+ * Each photo carries its own caption (pin, stop, result, and its area label),
+ * so a spot's photos read as a group without a header row eating the page.
+ * Used for the proof of everything confirmed, and for spots that were
+ * photographed but never marked.
  */
-async function proofPages(
+async function spotGallery(
   ctx: Ctx,
   project: Project,
-  confirmed: { pin: Pin; stop: number }[],
+  entries: { pin: Pin; stop: number }[],
   store: ProjectStore,
   photoById: Map<string, Photo>,
-  spec: ReturnType<typeof specFor>,
+  heading: { title: string; note: string },
 ) {
   const { theme, fonts } = ctx
-  const v = spec.validation!
-  const perPage = 6
-  const colsN = 2
-  const gap = 14
-  const capH = 34
-  const cellW = (PW - 2 * M - gap) / colsN
+  const colsN = 3
+  const gap = 12
+  const cellW = (PW - 2 * M - (colsN - 1) * gap) / colsN
+  const imgH = 128
+  const capH = 26
+  const rowH = imgH + capH + gap
+  const floor = 50
 
-  for (let start = 0; start < confirmed.length; start += perPage) {
-    const s = newSheet(ctx, v.proofTitle)
-    let y = PH - 80
-    s.text(v.proofTitle, M, y, { font: fonts.display, size: 15, color: theme.structure })
+  // One cell per photo; a spot with no photo still gets a cell, so it is seen.
+  type Cell = { pin: Pin; stop: number; image: PDFImage | null; label: string }
+  const cells: Cell[] = []
+  for (const { pin, stop } of entries) {
+    const images = await loadPhotos(ctx.doc, store, pin, photoById)
+    if (!images.length) cells.push({ pin, stop, image: null, label: pin.area || copyUnnamed(pin) })
+    for (const { image, photo } of images) cells.push({ pin, stop, image, label: photoLabel(pin, photo.id) })
+  }
+
+  let s = newSheet(ctx, heading.title)
+  let y = PH - 80
+  const title = (first: boolean) => {
+    s.text(heading.title, M, y, { font: fonts.display, size: 15, color: theme.structure })
     s.line(M, y - 10, M + 120, y - 10, theme.accent, 3)
     y -= 26
-    s.text(reportCopy.proofNote(confirmed.length), M, y, { size: 9, color: theme.ink })
-    y -= 18
+    if (first) {
+      y = s.para(heading.note, M, y, PW - 2 * M, { size: 9, leading: 12 }) - 6
+    } else {
+      y -= 4
+    }
+  }
+  title(true)
 
-    const rowsN = 3
-    const cellH = (y - 58 - (rowsN - 1) * gap) / rowsN
-    const imgH = cellH - capH
-
-    const page = confirmed.slice(start, start + perPage)
-    for (let i = 0; i < page.length; i++) {
-      const { pin, stop } = page[i]
-      const cx = M + (i % colsN) * (cellW + gap)
-      const top = y - Math.floor(i / colsN) * (cellH + gap)
+  for (let i = 0; i < cells.length; i += colsN) {
+    if (y - rowH < floor) {
+      s = newSheet(ctx, heading.title)
+      y = PH - 80
+      title(false)
+    }
+    const top = y
+    for (let c = 0; c < colsN; c++) {
+      const cell = cells[i + c]
+      if (!cell) break
+      const cx = M + c * (cellW + gap)
       const imgY = top - imgH
-
-      // One photo is the proof; only the first is embedded, which keeps a
-      // 45-spot rollout report light.
-      const [first] = await loadPhotos(ctx.doc, store, { ...pin, photoIds: pin.photoIds.slice(0, 1) }, photoById)
-      if (first) {
-        s.fit(first.image, cx, imgY, cellW, imgH, { background: theme.card, border: theme.rule })
+      if (cell.image) {
+        s.fit(cell.image, cx, imgY, cellW, imgH, { background: theme.card, border: theme.rule })
       } else {
         s.rect(cx, imgY, cellW, imgH, { fill: theme.card })
         s.rect(cx, imgY, cellW, imgH, { stroke: theme.rule, lineWidth: 0.8 })
-        s.text(reportCopy.noPhoto, cx + cellW / 2, imgY + imgH / 2 - 3, {
-          size: 9,
-          color: theme.accent,
-          align: 'c',
-        })
+        s.text(reportCopy.noPhoto, cx + cellW / 2, imgY + imgH / 2 - 3, { size: 8.5, color: theme.accent, align: 'c' })
       }
-
-      const head = `Pin ${pin.no} · Stop ${stop}`
-      s.text(head, cx, imgY - 12, { font: fonts.bodyBold, size: 8.5, color: theme.structure })
-      const result = statusLabel(project.subject, pin.status)
-      s.text(result, cx + cellW, imgY - 12, {
+      // Line 1: which spot, and its result in its colour. Line 2: this photo.
+      const where = `Pin ${cell.pin.no} · Stop ${cell.stop}`
+      const result = statusLabel(project.subject, cell.pin.status)
+      s.text(where, cx, imgY - 10, { font: fonts.bodyBold, size: 7.5, color: theme.structure })
+      s.text(result, cx + cellW, imgY - 10, {
         font: fonts.bodyBold,
-        size: 8.5,
-        color: RESULT_COLORS[VERIFIED],
+        size: 7.5,
+        color: RESULT_COLORS[cell.pin.status] ?? theme.structure,
         align: 'r',
       })
-      const detail = [pin.area || copyUnnamed(pin), pin.issue.trim()].filter(Boolean).join(' — ')
-      s.text(ellipsize(detail, fonts.body, 8.5, cellW), cx, imgY - 24, { size: 8.5, color: theme.muted })
+      const item = cell.pin.issue.trim()
+      const line2 = item ? `${cell.label} — ${item}` : cell.label
+      s.text(ellipsize(line2, fonts.body, 7.5, cellW), cx, imgY - 20, { size: 7.5, color: theme.muted })
     }
+    y -= rowH
   }
 }
 

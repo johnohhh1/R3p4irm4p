@@ -25,6 +25,7 @@ import { formatDate, walkOrder } from '../lib/util'
 import { photoLabel } from '../lib/labels'
 import { clampLines, ellipsize, M, PH, PW, Sheet, textWidth, type Fonts } from './page'
 import { loadPlanBitmap, renderLocator, renderMarkedPlan } from './planRender'
+import { drawable, printableProject } from './printable'
 import { specFor, templateName, themeFor, type Theme } from './theme'
 
 export interface ReportProgress {
@@ -87,10 +88,15 @@ function newSheet(ctx: Ctx, right: string, landscape = false): Sheet {
 }
 
 export async function generateReport(
-  project: Project,
+  input: Project,
   store: ProjectStore,
   onProgress?: ReportProgress,
 ): Promise<Blob> {
+  const doc = await PDFDocument.create()
+  const fonts = await embedFonts(doc)
+  // Everything below draws from this copy, so no typed or pasted character can
+  // stop the report being built.
+  const project = printableProject(input, drawable(Object.values(fonts)))
   if (!project.plan) throw new Error('no plan')
 
   const spec = specFor(project.template)
@@ -100,7 +106,6 @@ export async function generateReport(
   const photoById = new Map(project.photos.map((p) => [p.id, p]))
   const photoCount = project.pins.reduce((n, p) => n + p.photoIds.length, 0)
 
-  const doc = await PDFDocument.create()
   doc.setTitle(`${templateName(project.template)} — ${project.report.site || project.name}`)
   doc.setCreator('Repair Map')
   doc.setProducer('Repair Map')
@@ -113,7 +118,7 @@ export async function generateReport(
     .filter(Boolean)
     .join(' · ')
 
-  const ctx: Ctx = { doc, fonts: await embedFonts(doc), theme, pageNo: 0, site, byline }
+  const ctx: Ctx = { doc, fonts, theme, pageNo: 0, site, byline }
 
   onProgress?.('plan', 0, total + 3)
 

@@ -43,9 +43,13 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
       downloadBlob(blob, `${name}-${project.report.date || 'report'}.pdf`)
       setProgress(null)
       onClose()
-    } catch {
+    } catch (err) {
       setProgress(null)
-      fail(copy.errors.reportFailed)
+      // Say what actually broke: "could not be built" alone is undiagnosable
+      // when the site only exists in someone else's browser.
+      console.error(err)
+      const detail = err instanceof Error ? err.message : String(err)
+      fail(detail ? copy.errors.reportFailedDetail(detail.slice(0, 160)) : copy.errors.reportFailed)
     }
   }
 

@@ -193,6 +193,8 @@ export const copy = {
     loadFailed: 'That site could not be opened.',
     importFailed: 'That file is not a Repair Map project.',
     reportFailed: 'The report could not be built. Nothing was lost — try again.',
+    reportFailedDetail: (detail: string) =>
+      `The report could not be built (${detail}). Nothing was lost — try again, and pass this message on if it keeps happening.`,
   },
 
   toasts: {

@@ -978,6 +978,33 @@ async function proofPages(
 
 /* ----------------------------------------------------------------- loaders */
 
+/**
+ * Embed any picture. The format is read from the file's own first bytes, not
+ * its MIME type, which lies often enough (a PNG saved as .jpg, a WEBP logo).
+ * Anything the PDF cannot take directly is redrawn to PNG first.
+ */
+async function embedImage(doc: PDFDocument, blob: Blob): Promise<PDFImage> {
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  const isPng = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
+  const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8
+  if (isPng) return doc.embedPng(bytes)
+  if (isJpeg) return doc.embedJpg(bytes)
+  const bitmap = await createImageBitmap(blob)
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = bitmap.width
+    canvas.height = bitmap.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('no 2d context')
+    ctx.drawImage(bitmap, 0, 0)
+    const png = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'))
+    if (!png) throw new Error('could not convert image')
+    return doc.embedPng(new Uint8Array(await png.arrayBuffer()))
+  } finally {
+    bitmap.close()
+  }
+}
+
 async function embedLogo(
   doc: PDFDocument,
   store: ProjectStore,
@@ -987,8 +1014,9 @@ async function embedLogo(
   try {
     const blob = await store.getBlob(blobId)
     if (!blob) return null
-    const bytes = await blob.arrayBuffer()
-    return blob.type === 'image/png' ? doc.embedPng(bytes) : doc.embedJpg(bytes)
+    // Awaited here, inside the try: a returned-but-unawaited promise used to
+    // skip this catch, so one unusable logo failed the whole report.
+    return await embedImage(doc, blob)
   } catch {
     return null
   }
@@ -1007,10 +1035,8 @@ async function loadPhotos(
     const blob = await store.getBlob(photo.blobId)
     if (!blob) continue
     try {
-      const bytes = await blob.arrayBuffer()
-      // Photos are re-encoded to JPEG on import, so embedJpg is the normal path.
-      const image = blob.type === 'image/png' ? await doc.embedPng(bytes) : await doc.embedJpg(bytes)
-      out.push({ image, photo })
+      // Photos are re-encoded to JPEG on import, so this is almost always JPEG.
+      out.push({ image: await embedImage(doc, blob), photo })
     } catch {
       // A photo that will not embed is skipped rather than failing the report.
     }

@@ -164,35 +164,19 @@ export async function generateReport(
     onProgress?.('checklist', 2, total + 3)
     checklist(ctx, project, pins, spec)
 
-    /* ------------------------------------ a full page for every exception */
-    const exceptions = pins.filter(({ pin }) => pin.status === MISSING || pin.status === WRONG)
-    for (let i = 0; i < exceptions.length; i++) {
-      const { pin, stop } = exceptions[i]
-      onProgress?.('exceptions', 3 + i, total + 3)
+    /* ----------------------------- a page for every spot that has anything */
+    // Same pages as the repair report: each spot's photos large, its item, its
+    // result in colour, and where it sits on the plan. Walking order, like
+    // every other page. A spot with no result and no photo is only a line on
+    // the checklist; everything else gets its page.
+    const shown = pins.filter(({ pin }) => pin.status !== PENDING || pin.photoIds.length)
+    for (let i = 0; i < shown.length; i++) {
+      const { pin, stop } = shown[i]
+      onProgress?.('spots', 3 + i, total + 3)
       const locatorPng = await renderLocator(planSource, pin, colorOf(pin))
       const locator = await doc.embedPng(await locatorPng.arrayBuffer())
       const images = await loadPhotos(doc, store, pin, photoById)
       await locationPages(ctx, project, pin, stop, total, locator, images, spec)
-    }
-
-    /* ------------------------------- proof: everything confirmed, together */
-    const confirmed = pins.filter(({ pin }) => pin.status === VERIFIED)
-    if (confirmed.length) {
-      await spotGallery(ctx, project, confirmed, store, photoById, {
-        title: spec.validation.proofTitle,
-        note: reportCopy.proofNote(confirmed.length),
-      })
-    }
-
-    /* ---------------------- photographed, but nobody tapped a result yet */
-    // A spot with photos and no result is usually done and just not marked;
-    // its photos belong in the report rather than silently left out.
-    const unmarked = pins.filter(({ pin }) => pin.status === PENDING && pin.photoIds.length)
-    if (unmarked.length) {
-      await spotGallery(ctx, project, unmarked, store, photoById, {
-        title: reportCopy.unmarkedTitle,
-        note: reportCopy.unmarkedNote(unmarked.length),
-      })
     }
   } else {
     /* ------------------------------------------------------------ worksheet */
@@ -920,90 +904,6 @@ function checklist(
     s.line(M, y - rh, x, y - rh, theme.rule, 0.5)
     y -= rh
   })
-}
-
-/**
- * Every photo of a run of spots as one grid, in walking order, three across.
- * Each photo carries its own caption (pin, stop, result, and its area label),
- * so a spot's photos read as a group without a header row eating the page.
- * Used for the proof of everything confirmed, and for spots that were
- * photographed but never marked.
- */
-async function spotGallery(
-  ctx: Ctx,
-  project: Project,
-  entries: { pin: Pin; stop: number }[],
-  store: ProjectStore,
-  photoById: Map<string, Photo>,
-  heading: { title: string; note: string },
-) {
-  const { theme, fonts } = ctx
-  const colsN = 3
-  const gap = 12
-  const cellW = (PW - 2 * M - (colsN - 1) * gap) / colsN
-  const imgH = 128
-  const capH = 26
-  const rowH = imgH + capH + gap
-  const floor = 50
-
-  // One cell per photo; a spot with no photo still gets a cell, so it is seen.
-  type Cell = { pin: Pin; stop: number; image: PDFImage | null; label: string }
-  const cells: Cell[] = []
-  for (const { pin, stop } of entries) {
-    const images = await loadPhotos(ctx.doc, store, pin, photoById)
-    if (!images.length) cells.push({ pin, stop, image: null, label: pin.area || copyUnnamed(pin) })
-    for (const { image, photo } of images) cells.push({ pin, stop, image, label: photoLabel(pin, photo.id) })
-  }
-
-  let s = newSheet(ctx, heading.title)
-  let y = PH - 80
-  const title = (first: boolean) => {
-    s.text(heading.title, M, y, { font: fonts.display, size: 15, color: theme.structure })
-    s.line(M, y - 10, M + 120, y - 10, theme.accent, 3)
-    y -= 26
-    if (first) {
-      y = s.para(heading.note, M, y, PW - 2 * M, { size: 9, leading: 12 }) - 6
-    } else {
-      y -= 4
-    }
-  }
-  title(true)
-
-  for (let i = 0; i < cells.length; i += colsN) {
-    if (y - rowH < floor) {
-      s = newSheet(ctx, heading.title)
-      y = PH - 80
-      title(false)
-    }
-    const top = y
-    for (let c = 0; c < colsN; c++) {
-      const cell = cells[i + c]
-      if (!cell) break
-      const cx = M + c * (cellW + gap)
-      const imgY = top - imgH
-      if (cell.image) {
-        s.fit(cell.image, cx, imgY, cellW, imgH, { background: theme.card, border: theme.rule })
-      } else {
-        s.rect(cx, imgY, cellW, imgH, { fill: theme.card })
-        s.rect(cx, imgY, cellW, imgH, { stroke: theme.rule, lineWidth: 0.8 })
-        s.text(reportCopy.noPhoto, cx + cellW / 2, imgY + imgH / 2 - 3, { size: 8.5, color: theme.accent, align: 'c' })
-      }
-      // Line 1: which spot, and its result in its colour. Line 2: this photo.
-      const where = `Pin ${cell.pin.no} · Stop ${cell.stop}`
-      const result = statusLabel(project.subject, cell.pin.status)
-      s.text(where, cx, imgY - 10, { font: fonts.bodyBold, size: 7.5, color: theme.structure })
-      s.text(result, cx + cellW, imgY - 10, {
-        font: fonts.bodyBold,
-        size: 7.5,
-        color: RESULT_COLORS[cell.pin.status] ?? theme.structure,
-        align: 'r',
-      })
-      const item = cell.pin.issue.trim()
-      const line2 = item ? `${cell.label} — ${item}` : cell.label
-      s.text(ellipsize(line2, fonts.body, 7.5, cellW), cx, imgY - 20, { size: 7.5, color: theme.muted })
-    }
-    y -= rowH
-  }
 }
 
 /* ----------------------------------------------------------------- loaders */

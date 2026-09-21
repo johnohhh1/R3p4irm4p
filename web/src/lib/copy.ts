@@ -233,14 +233,10 @@ export const reportCopy = {
   noPhoto: 'No photo taken',
   checklistNote: 'Every spot set up for this check, in walking order.',
   validationPlanNote: 'Each pin is a spot that was set up for this check; its colour is the result.',
-  proofNote: (n: number) => `${n} confirmed ${n === 1 ? 'spot' : 'spots'}, with every photo taken.`,
-  unmarkedTitle: 'PHOTOGRAPHED, NOT MARKED',
-  unmarkedNote: (n: number) =>
-    `${n} ${n === 1 ? 'spot has' : 'spots have'} photos but no result yet. Mark ${n === 1 ? 'it' : 'them'} in the app to count toward coverage.`,
   moreOnChecklist: (n: number) => `+${n} more on the checklist`,
   checkedOn: (date: string) => `Checked ${date}`,
   validationNumbers:
-    'Pin numbers come from the live map and never change. Pages run in walking order through the building, so the numbers themselves are not in order. Missing and wrong spots get a full page each; confirmed spots are shown together as proof.',
+    'Pin numbers come from the live map and never change. Pages run in walking order through the building, so the numbers themselves are not in order. Every spot that was checked or photographed has its own page with all of its photos.',
   validationBody: (site: string, date: string, total: number, done: number, missing: number, wrong: number, pending: number) =>
     `This report validates ${total} ${total === 1 ? 'spot' : 'spots'} at ${site} as of ${date}. ` +
     `${done} ${done === 1 ? 'was' : 'were'} confirmed, ${missing} missing, ${wrong} ${wrong === 1 ? 'needs' : 'need'} fixing` +

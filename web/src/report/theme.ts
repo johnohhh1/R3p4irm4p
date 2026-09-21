@@ -58,8 +58,6 @@ export interface TemplateSpec {
     itemLabel: string
     /** Column and field heading for the outcome. */
     resultLabel: string
-    /** Heading over the grid of confirmed spots. */
-    proofTitle: string
     /** "spots verified" / "spots in place" under the big coverage number. */
     coverageNoun: string
   }
@@ -118,7 +116,6 @@ const SPECS: Record<TemplateId, TemplateSpec> = {
     validation: {
       itemLabel: 'ITEM',
       resultLabel: 'RESULT',
-      proofTitle: 'PROOF OF ROLLOUT',
       coverageNoun: 'spots verified',
     },
   },
@@ -134,7 +131,6 @@ const SPECS: Record<TemplateId, TemplateSpec> = {
     validation: {
       itemLabel: 'ITEM',
       resultLabel: 'RESULT',
-      proofTitle: 'PROOF OF PLACEMENT',
       coverageNoun: 'spots in place',
     },
   },

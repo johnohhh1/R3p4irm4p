@@ -1,3 +1,5 @@
+> Promoted to main at the user's request on September 23, 2026. Main restores production storage keys and Worker name; the isolation instructions below describe the retained ui-lab branch.
+
 # Repair Map UI lab
 
 An isolated design experiment based on main at 5123e6b. The existing report generators and export format remain unchanged.

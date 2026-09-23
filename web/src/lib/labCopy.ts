@@ -1,5 +1,5 @@
 export const labCopy = {
-  preview: 'Design preview', homeTitle: 'Your next walk starts here.',
+  preview: 'Repair Map', homeTitle: 'Your next walk starts here.',
   homeIntro: 'Repairs, rollouts, and placement checks. Every photo in its place.',
   local: 'Saved on this device', homeSearch: 'Find a site or walk',
   sample: 'Explore a sample walk', loading: 'Preparing sample…',

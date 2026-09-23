@@ -151,3 +151,10 @@ Colours come from `--theme` (a small JSON of hex values) so the package can carr
 
 Proprietary — all rights reserved. See [LICENSE](LICENSE). Not for use,
 copying or distribution without written permission.
+
+
+### September 2026 interface update
+
+Map thumbnails, site and repair search, mobile detail sheets, camera actions near the area name, and photo/checklist progress are now part of the main app. The interface uses the supplied Chili's-inspired navy/red/cream style. Descriptor images can be marked as references in Photos to place; these remain in the project and .rmap backup without counting as unfinished placement. They can be moved back at any time.
+
+Existing browser storage and the production URL are preserved. To continue a desktop walk on a phone, save its .rmap backup and open it on the phone. There is no automatic device sync. PDF styling and generation are unchanged.

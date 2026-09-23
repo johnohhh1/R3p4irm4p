@@ -131,7 +131,7 @@ export function ProjectList() {
           ))}
         </div>
       )}
-      <p className="home-foot">{c.sampleNote} Your working app and its saved walks are separate.</p>
+      <p className="home-foot">{c.sampleNote} Your walks are saved on this device. Export a backup to move them to another device.</p>
     </div>
   )
 }

@@ -8,7 +8,7 @@ interface RepairMapDB extends DBSchema {
   blobs: { key: string; value: Blob }
 }
 
-const DB_NAME = 'repairmap'
+const DB_NAME = 'repairmap-ui-lab'
 const DB_VERSION = 1
 
 let dbPromise: Promise<IDBPDatabase<RepairMapDB>> | null = null

@@ -2,7 +2,7 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   // Static assets only: the app has no server. Plans and photos stay in the
   // browser of whoever is using it; Cloudflare only serves the page.
-  "name": "r3p4irm4p",
+  "name": "r3p4irm4p-ui-lab",
   "compatibility_date": "2026-09-17",
   "assets": {
     "directory": "./dist",

@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { labCopy as c } from '../lib/labCopy'
 import { useApp } from '../lib/state'
 import {
   CLOSED_STATUS,
@@ -12,6 +14,7 @@ import { copy } from '../lib/copy'
 import { walkOrder } from '../lib/util'
 
 export function PinList() {
+  const [search, setSearch] = useState('')
   const project = useApp((s) => s.project)
   const filter = useApp((s) => s.listFilter)
   const setFilter = useApp((s) => s.setListFilter)
@@ -22,10 +25,10 @@ export function PinList() {
   const statuses = statusesFor(project.subject)
   // The list reads in walk order, matching the report's page order.
   const ordered = walkOrder(project.pins)
-  const shown = filter === 'all' ? ordered : ordered.filter((p) => p.status === filter)
+  const shown = ordered.filter(p => (filter === 'all' || p.status === filter) && `${p.no} ${p.area} ${issueLabel(project.issueSet, p.issue)} ${p.note}`.toLowerCase().includes(search.trim().toLowerCase()))
 
   return (
-    <div className="pane">
+    <div className="pane"><input className="list-search" type="search" aria-label={c.search} placeholder={c.search} value={search} onChange={e => setSearch(e.target.value)} />
       {project.pins.length > 0 && (
         <div className="listtools">
           <button
@@ -53,10 +56,10 @@ export function PinList() {
       )}
 
       {!project.pins.length && <div className="empty">{copy.pins.empty}</div>}
-      {!!project.pins.length && !shown.length && <div className="empty">{copy.pins.emptyFiltered}</div>}
+      {!!project.pins.length && !shown.length && <div className="empty">{c.noSpots}</div>}
 
       <ol className="plist">
-        {shown.map((pin, i) => {
+        {shown.map((pin) => {
           const closed = pin.status === CLOSED_STATUS
           return (
             <li key={pin.id}>
@@ -71,7 +74,7 @@ export function PinList() {
                   <span className="t">{pin.area || copy.pins.spotNo(pin.no)}</span>
                   <span className="m">
                     {issueLabel(project.issueSet, pin.issue)} · {pin.photoIds.length}
-                    {pin.photoIds.length === 1 ? ' photo' : ' photos'} · stop {i + 1}
+                    {pin.photoIds.length === 1 ? ' photo' : ' photos'} · stop {ordered.findIndex(p => p.id === pin.id) + 1}
                   </span>
                 </span>
                 <span

@@ -1,3 +1,6 @@
+import { PlanPreview } from './PlanPreview'
+import { labCopy as c } from '../lib/labCopy'
+import { sampleWalk } from '../lib/sampleWalk'
 import { useState } from 'react'
 import { useApp } from '../lib/state'
 import { copy } from '../lib/copy'
@@ -16,6 +19,17 @@ export function ProjectList() {
   const duplicateProject = useApp((s) => s.duplicateProject)
   const fail = useApp((s) => s.fail)
 
+  const [search, setSearch] = useState('')
+  const [loadingSample, setLoadingSample] = useState(false)
+  const store = useApp(s => s.store)
+  const openSample = async () => {
+    setLoadingSample(true)
+    try { const id = await sampleWalk(store); await useApp.getState().init(); await openProject(id) }
+    catch (e) { fail(e instanceof Error ? e.message : 'Could not create sample') }
+    finally { setLoadingSample(false) }
+  }
+  const visible = projects.filter(p => `${p.name} ${p.site} ${TEMPLATE_NAMES[p.template]}`.toLowerCase().includes(search.trim().toLowerCase()))
+
   const [renaming, setRenaming] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
 
@@ -30,10 +44,8 @@ export function ProjectList() {
 
   return (
     <div className="home">
-      <header>
-        <h1>{copy.app.name}</h1>
-      </header>
-      <p className="tagline">{copy.app.tagline}</p>
+      <header className="home-top"><a className="wordmark" href="/" aria-label="Repair Map home"><span className="brand-mark" aria-hidden="true">⌖</span>{copy.app.name}</a><span className="preview-badge">{c.preview}</span><span className="device-note">{c.local}</span></header>
+      <section className="home-intro"><div><h1>{c.homeTitle}</h1><p className="tagline">{c.homeIntro}</p></div><div className="intro-stamp" aria-hidden="true"><span>Map.</span><span>Capture.</span><span>Report.</span></div></section>
 
       <div className="homeactions">
         <button type="button" className="btn primary" onClick={() => void createProject()}>
@@ -43,14 +55,18 @@ export function ProjectList() {
           {copy.projects.importFile}
         </button>
         {picker.input}
+        <button className="btn ghost" disabled={loadingSample} onClick={() => void openSample()}>{loadingSample ? c.loading : c.sample}</button>
       </div>
+      <div className="walks-heading"><div><h2>{c.sites}</h2><p>{c.siteCount(projects.length)}</p></div><input className="list-search" type="search" aria-label={c.homeSearch} placeholder={c.homeSearch} value={search} onChange={e => setSearch(e.target.value)} /></div>
+      {!!projects.length && !visible.length && <p className="empty">{c.noMatches}</p>}
 
       {!projects.length ? (
         <div className="empty">{copy.projects.empty}</div>
       ) : (
         <div className="cards">
-          {projects.map((p) => (
+          {visible.map((p) => (
             <div className="card" key={p.id}>
+              <button className="preview-open" aria-label={`Open ${p.name}`} onClick={() => void openProject(p.id)}><PlanPreview id={p.id} updatedAt={p.updatedAt} /><span className="preview-kind">{TEMPLATE_NAMES[p.template]}</span></button>
               <div style={{ minWidth: 0 }}>
                 {renaming === p.id ? (
                   <input
@@ -70,11 +86,11 @@ export function ProjectList() {
                     }}
                   />
                 ) : (
-                  <h3>{p.name}</h3>
+                  <h3><button className="title-open" onClick={() => void openProject(p.id)}>{p.name}</button></h3>
                 )}
                 <div className="m">
                   {p.site ? `${p.site} · ` : ''}
-                  {TEMPLATE_NAMES[p.template]} · {copy.projects.counts(p.pinCount, p.photoCount)}
+                  {copy.projects.counts(p.pinCount, p.photoCount)}
                   {p.hasPlan ? '' : ` · ${copy.projects.noPlan}`}
                 </div>
                 <div className="m">{copy.projects.updated(formatWhen(p.updatedAt))}</div>
@@ -83,6 +99,7 @@ export function ProjectList() {
                 <button type="button" className="btn primary small" onClick={() => void openProject(p.id)}>
                   {copy.projects.open}
                 </button>
+                <details className="card-menu"><summary aria-label={`Options for ${p.name}`}>•••</summary><div>
                 <button
                   type="button"
                   className="btn small"
@@ -108,12 +125,13 @@ export function ProjectList() {
                   confirmLabel={copy.projects.removeConfirmYes}
                   className="btn danger small"
                   onConfirm={() => void deleteProject(p.id)}
-                />
+                /></div></details>
               </div>
             </div>
           ))}
         </div>
       )}
+      <p className="home-foot">{c.sampleNote} Your working app and its saved walks are separate.</p>
     </div>
   )
 }

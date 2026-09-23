@@ -4,7 +4,9 @@ import { copy } from '../lib/copy'
 import { statusesFor, TEMPLATE_NAMES } from '../lib/catalog'
 import { exportProject } from '../lib/rmap'
 import { downloadBlob, safeFilename } from '../lib/util'
-import { planSourceLabel } from '../lib/plan'
+import { labCopy as c } from '../lib/labCopy'
+import { WalkOverview } from './WalkOverview'
+import { isValidation } from '../lib/catalog'
 import { PlanStage } from './PlanStage'
 import { PhotoTray } from './PhotoTray'
 import { PinList } from './PinList'
@@ -26,6 +28,11 @@ export function Workspace() {
   const setPlan = useApp((s) => s.setPlan)
   const say = useApp((s) => s.say)
   const renameProject = useApp((s) => s.renameProject)
+
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const armed = useApp(s => s.armed)
+  useEffect(() => { if (selectedPinId) setSheetOpen(true) }, [selectedPinId])
+  useEffect(() => { if (armed) setSheetOpen(false) }, [armed])
 
   const [reportOpen, setReportOpen] = useState(false)
   const [zoomPhoto, setZoomPhoto] = useState<string | null>(null)
@@ -69,7 +76,7 @@ export function Workspace() {
   }
 
   return (
-    <div className="app editing">
+    <div className={`app editing ${sheetOpen ? "sheet-open" : ""}`}><div className="lab-ribbon">{c.preview}<span>{c.local}</span></div>
       <header className="bar">
         <button type="button" className="btn ghost small" onClick={goProjects}>
           ‹ {copy.projects.title}
@@ -103,7 +110,7 @@ export function Workspace() {
           )}
           <span className="sub">{TEMPLATE_NAMES[project.template]}</span>
         </div>
-        <div className="stats">
+        <div className="stats workspace-stats">
           <span className="stat">
             <b>{project.pins.length}</b>
             {project.pins.length === 1 ? 'spot' : 'spots'}
@@ -125,18 +132,19 @@ export function Workspace() {
             {saveState === 'saving' ? copy.save.saving : saveState === 'failed' ? copy.save.failed : copy.save.saved}
           </span>
           <button type="button" className="btn small" onClick={() => void exportRmap()}>
-            {copy.projects.exportFile}
+            {c.backup}
           </button>
           <button type="button" className="btn primary" onClick={() => setReportOpen(true)}>
-            {copy.report.open}
+            {c.report}
           </button>
         </div>
       </header>
 
+      <WalkOverview />
       {project.plan && (
         <div className="banner">
           <span className="grow">
-            {project.plan.name} · {planSourceLabel(project.plan.source)} · {project.plan.w}×{project.plan.h}
+            {project.plan.name}
           </span>
           {!replacing ? (
             <button type="button" className="btn small" onClick={() => setReplacing(true)}>
@@ -149,7 +157,7 @@ export function Workspace() {
                 {copy.plan.replaceConfirm}
               </button>
               <button type="button" className="btn small ghost" onClick={() => setReplacing(false)}>
-                Cancel
+                {c.cancel}
               </button>
             </>
           )}
@@ -159,14 +167,15 @@ export function Workspace() {
 
       <main className="work">
         <PlanStage />
-        <aside className="side" aria-label="Photos and repair list">
+        <aside className="side" aria-label="Photos and spots">
+          <button className="sheet-toggle" aria-expanded={sheetOpen} onClick={() => { if (sheetOpen) useApp.getState().select(null); setSheetOpen(!sheetOpen) }}><span aria-hidden="true" />{sheetOpen ? c.map : c.details}</button>
           <div className="tabs" role="tablist">
             <button
               type="button"
               className="tab"
               role="tab"
               aria-selected={sidebar === 'tray' && !selectedPinId}
-              onClick={() => setSidebar('tray')}
+              onClick={() => { setSidebar('tray'); setSheetOpen(true) }}
             >
               {copy.photos.tabLabel}
               <b>{unplaced}</b>
@@ -176,9 +185,9 @@ export function Workspace() {
               className="tab"
               role="tab"
               aria-selected={sidebar === 'list' && !selectedPinId}
-              onClick={() => setSidebar('list')}
+              onClick={() => { setSidebar('list'); setSheetOpen(true) }}
             >
-              {copy.pins.tabLabel}
+              {isValidation(project.subject) ? c.checklist : copy.pins.tabLabel}
               <b>{project.pins.length}</b>
             </button>
           </div>

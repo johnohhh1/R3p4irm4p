@@ -702,7 +702,7 @@ export const useApp = create<AppState>((set, get) => {
   }
 })
 
-const LAST_OPENED_KEY = 'repairmap.lastOpened'
+const LAST_OPENED_KEY = 'repairmap-ui-lab.lastOpened'
 
 /** Which site was open last. A per-browser convenience; the data lives in IndexedDB. */
 function readLastOpened(): string | null {

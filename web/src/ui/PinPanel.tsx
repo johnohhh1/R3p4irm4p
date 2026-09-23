@@ -11,6 +11,8 @@ import {
   validationItemsFor,
 } from '../lib/catalog'
 import { copy } from '../lib/copy'
+import { labCopy as c } from '../lib/labCopy'
+import { walkOrder } from '../lib/util'
 import { formatWhen } from '../lib/util'
 import { BlobImg, ConfirmButton, useFilePicker } from './bits'
 import { photoLabel } from '../lib/labels'
@@ -52,8 +54,16 @@ export function PinPanel({ pinId, onZoom }: { pinId: string; onZoom: (photoId: s
     ]),
   ]
 
+  const ordered = walkOrder(project.pins)
+  const index = ordered.findIndex(p => p.id === pinId)
+
   return (
-    <div className="pane">
+    <div className="pane detail-pane" key={pinId}>
+      <nav className="spot-navigation" aria-label="Move between spots">
+        <button className="btn small" disabled={index <= 0} onClick={() => select(ordered[index - 1].id)} aria-label={c.previous}>‹</button>
+        <span>Spot {index + 1} of {ordered.length} in walking order</span>
+        <button className="btn small" disabled={index >= ordered.length - 1} onClick={() => select(ordered[index + 1].id)} aria-label={c.next}>›</button>
+      </nav>
       <div className="dhead">
         <span
           className="badge"
@@ -84,6 +94,17 @@ export function PinPanel({ pinId, onZoom }: { pinId: string; onZoom: (photoId: s
           ))}
         </datalist>
       </div>
+
+        <div className="capture">
+          <button type="button" className="btn primary" onClick={camera.open} disabled={!!importing}>
+            {copy.pins.takePhoto}
+          </button>
+          <button type="button" className="btn" onClick={gallery.open} disabled={!!importing}>
+            {copy.pins.addPhotos}
+          </button>
+          {camera.input}
+          {gallery.input}
+        </div>
 
       {validation ? (
         <>
@@ -155,30 +176,11 @@ export function PinPanel({ pinId, onZoom }: { pinId: string; onZoom: (photoId: s
         </>
       )}
 
-      <div className="field">
-        <label htmlFor="pin-note">{copy.pins.note}</label>
-        <textarea
-          id="pin-note"
-          value={pin.note}
-          placeholder={copy.pins.notePlaceholder}
-          onChange={(e) => updatePin(pin.id, { note: e.target.value })}
-        />
-      </div>
 
       <div className="field">
         <span className="lbl">
           {copy.pins.photos} ({photos.length})
         </span>
-        <div className="capture">
-          <button type="button" className="btn primary" onClick={camera.open} disabled={!!importing}>
-            {copy.pins.takePhoto}
-          </button>
-          <button type="button" className="btn" onClick={gallery.open} disabled={!!importing}>
-            {copy.pins.addPhotos}
-          </button>
-          {camera.input}
-          {gallery.input}
-        </div>
         {importing && (
           <p className="meta" style={{ marginTop: 0 }}>
             {copy.photos.importing(importing.done, importing.total)}
@@ -215,6 +217,16 @@ export function PinPanel({ pinId, onZoom }: { pinId: string; onZoom: (photoId: s
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="field">
+        <label htmlFor="pin-note">{copy.pins.note}</label>
+        <textarea
+          id="pin-note"
+          value={pin.note}
+          placeholder={copy.pins.notePlaceholder}
+          onChange={(e) => updatePin(pin.id, { note: e.target.value })}
+        />
       </div>
 
       <div className="dfoot">

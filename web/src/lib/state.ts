@@ -72,6 +72,7 @@ interface AppState {
   setTemplate(template: TemplateId): void
   setReport(patch: Partial<ReportSettings>): void
   setKeepGps(keep: boolean): void
+  setPhotoRole(ids: string[], role: 'evidence' | 'reference'): void
 
   setPlan(file: File): Promise<void>
   addPhotos(files: File[]): Promise<void>
@@ -403,6 +404,17 @@ export const useApp = create<AppState>((set, get) => {
       })
     },
 
+    setPhotoRole(ids, role) {
+      const chosen = new Set(ids)
+      touch((d) => {
+        const attached = new Set(d.pins.flatMap(p => p.photoIds))
+        for (const photo of d.photos) {
+          if (chosen.has(photo.id) && !attached.has(photo.id)) photo.role = role
+        }
+      })
+      set({ armed: null })
+    },
+
     setKeepGps(keep) {
       touch((d) => {
         d.keepGps = keep
@@ -726,7 +738,7 @@ function writeLastOpened(id: string | null): void {
 export function unplacedIds(project: Project): string[] {
   const used = new Set<string>()
   for (const pin of project.pins) for (const id of pin.photoIds) used.add(id)
-  const known = new Set(project.photos.map((p) => p.id))
+  const known = new Set(project.photos.filter(p => p.role !== 'reference').map((p) => p.id))
   return project.order.filter((id) => known.has(id) && !used.has(id))
 }
 

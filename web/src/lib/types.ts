@@ -59,6 +59,8 @@ export interface Pin {
 }
 
 export interface Photo {
+  /** Reference images explain the standard; they do not need placement. */
+  role?: 'evidence' | 'reference'
   id: string
   blobId: string
   thumbId: string

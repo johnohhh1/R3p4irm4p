@@ -15,6 +15,7 @@ export function PhotoTray({ onZoom }: { onZoom: (photoId: string) => void }) {
   const keepGps = useApp((s) => s.project?.keepGps ?? false)
   const setKeepGps = useApp((s) => s.setKeepGps)
 
+  const setPhotoRole = useApp(s => s.setPhotoRole)
   const [over, setOver] = useState(false)
   const picker = useFilePicker((files) => void addPhotos(files), 'image/*', true)
 
@@ -43,6 +44,7 @@ export function PhotoTray({ onZoom }: { onZoom: (photoId: string) => void }) {
 
   if (!project) return null
 
+  const references = project.photos.filter(p => p.role === 'reference')
   const armedIds = armed?.kind === 'photos' ? armed.ids : []
 
   /**
@@ -94,6 +96,23 @@ export function PhotoTray({ onZoom }: { onZoom: (photoId: string) => void }) {
       {!!project.photos.length && !unplaced.length && !importing && (
         <div className="empty">{copy.photos.allPlaced}</div>
       )}
+
+      {!!unplaced.length && <section className="reference-help">
+        <strong>Some images show the standard?</strong>
+        <p>Keep descriptor photos as references. They stay in the project and backup, but do not need a map pin.</p>
+        <button className="btn small" onClick={() => setPhotoRole(armedIds.length ? armedIds : unplaced, 'reference')}>
+          {armedIds.length ? `Keep ${armedIds.length} selected as references` : `Keep all ${unplaced.length} remaining as references`}
+        </button>
+      </section>}
+      {!!references.length && <details className="reference-help">
+        <summary>Reference photos ({references.length})</summary>
+        <p>Placement instructions and examples. These are not unfinished spots.</p>
+        <button className="btn small" onClick={() => setPhotoRole(references.map(p => p.id), 'evidence')}>Move all back to photos to place</button>
+        <div className="reference-grid">{references.map(photo => <div key={photo.id}>
+          <button className="thumb" onClick={() => onZoom(photo.id)}><BlobImg blobId={photo.thumbId} alt={photo.name}/><span className="nm">{photo.name}</span></button>
+          <button className="btn small" onClick={() => setPhotoRole([photo.id], 'evidence')}>Move to placement</button>
+        </div>)}</div>
+      </details>}
 
       {groups.map(([key, photos]) => (
         <div className="group" key={key}>

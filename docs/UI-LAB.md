@@ -27,3 +27,12 @@ This is not a physical-phone camera test, a full accessibility audit, or a fresh
 ## What I would prioritize next
 
 Test this direction on an actual restaurant walk before expanding the feature set. Then consider undo for destructive edits, clearer backup reminders, and an in-app report preview. Director tools can be a separate project once the everyday capture workflow feels effortless.
+
+
+## Chili's-inspired revision
+
+Applied John's supplied styleguide.md and chilis-style-SKILL.md as visual references: navy structure, red primary actions, warm neutral surfaces, gold on navy, Roboto Slab headings and Montserrat controls. Operational copy remains plain.
+
+Unattached photos can now be explicitly classified as references, individually through selection or in bulk. Reference photos remain viewable, can be returned to placement, and survive .rmap backup round trips. Existing files default to ordinary evidence photos. Attached pin photos cannot be reclassified by this action. Report layouts and inclusion rules are unchanged; references are retained in the editable project and backup, not newly appended to PDFs.
+
+Verified with an isolated in-memory fictional fixture: unplaced count 1 -> 0 on reference classification, .rmap round trip retains role and zero count, restoring evidence restores placement eligibility. Production build passed. Actual user photos were not reclassified automatically.

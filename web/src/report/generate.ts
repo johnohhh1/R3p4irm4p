@@ -3,6 +3,7 @@
  * anywhere. Page order and layout are ported from tools/build_pdf.py, which
  * stays in the repo as the reference the output is checked against.
  */
+import { winterReport } from './winter'
 import { PDFDocument, StandardFonts, type PDFImage } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import type { Photo, Pin, Project } from '../lib/types'
@@ -97,6 +98,7 @@ export async function generateReport(
   // Everything below draws from this copy, so no typed or pasted character can
   // stop the report being built.
   const project = printableProject(input, drawable(Object.values(fonts)))
+  if (project.subject === 'winterization') return winterReport(project, doc, fonts)
   if (!project.plan) throw new Error('no plan')
 
   const spec = specFor(project.template)

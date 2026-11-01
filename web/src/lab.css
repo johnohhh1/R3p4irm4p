@@ -181,3 +181,13 @@ h1,h2,h3 { font-family:'Roboto Slab',Rockwell,serif;font-weight:800;line-height:
 .reference-grid .btn { font-size:11px;margin-top:5px; }
 @media(prefers-color-scheme:dark){:root:not([data-theme='light']) { --bg:#19192e;--panel:#252540;--panel-2:#30304b;--ink:#FAF9F5;--muted:#cac7d3;--line:#55536a;--accent:#E81B23;--accent-soft:#512b3a;--ghost-bg:#30304b; }}
 @media(max-width:900px){.brand h1{font-size:20px}.actions{gap:5px}.actions .btn{font-size:11px;padding:8px}.home .home-intro h1{font-size:36px}.dhead h2{font-size:22px}}
+
+.winter-work { flex:1;min-height:0;overflow:auto;padding:24px; }
+.winter-intro,.winter-section,.winter-work>p { max-width:900px;margin:0 auto 24px; }
+.winter-intro p { line-height:1.6; }
+.winter-section h3 { border-bottom:3px solid #E81B23;padding-bottom:12px; }
+.winter-step { margin:16px 0;padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:12px; }
+.winter-step h4 { margin:0;font-size:18px; }
+.winter-step p { line-height:1.6; }
+.winter-step select { max-width:320px; }
+@media(max-width:600px){.winter-work{padding:16px}.winter-step{padding:16px}}

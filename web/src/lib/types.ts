@@ -8,6 +8,7 @@ export type TemplateId =
   | 'record'
   | 'rollout-validation'
   | 'placement-validation'
+  | 'winter-preparation'
 
 /**
  * Q1 — what is being documented. Seeds issue sets and area suggestions.
@@ -22,6 +23,7 @@ export type SubjectId =
   | 'other'
   | 'rollout'
   | 'placement'
+  | 'winterization'
 
 /** Q2 — families of problems. Each contributes issues to the pin panel. */
 export type IssueSetId =
@@ -87,7 +89,13 @@ export interface ReportSettings {
   link: string
 }
 
+export interface WinterResult {
+  status: 'pending' | 'done' | 'attention' | 'na'
+  note: string
+}
+
 export interface Project {
+  winterPreparation?: Record<string, WinterResult>
   id: string
   name: string
   template: TemplateId

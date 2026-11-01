@@ -71,6 +71,7 @@ interface AppState {
   setIssueSets(sets: IssueSetId[]): void
   setTemplate(template: TemplateId): void
   setReport(patch: Partial<ReportSettings>): void
+  setWinterResult(id: string, patch: Partial<import('./types').WinterResult>): void
   setKeepGps(keep: boolean): void
   setPhotoRole(ids: string[], role: 'evidence' | 'reference'): void
 
@@ -354,6 +355,7 @@ export const useApp = create<AppState>((set, get) => {
         })),
         photos: [],
         order: [],
+        winterPreparation: source.subject === 'winterization' ? {} : source.winterPreparation,
         report: { ...source.report, date: todayIso(), findings: '', logoBlobId: null },
         createdAt: now,
         updatedAt: now,
@@ -363,7 +365,7 @@ export const useApp = create<AppState>((set, get) => {
     },
 
     finishOnboarding(subject, sets, template) {
-      const validation = isValidation(subject)
+      const validation = isValidation(subject) || subject === 'winterization'
       touch((d) => {
         d.subject = subject
         d.issueSet = sets.length ? sets : SUBJECT_ISSUE_SETS[subject]
@@ -413,6 +415,13 @@ export const useApp = create<AppState>((set, get) => {
         }
       })
       set({ armed: null })
+    },
+
+    setWinterResult(id, patch) {
+      touch(d => {
+        d.winterPreparation ??= {}
+        d.winterPreparation[id] = { ...(d.winterPreparation[id] ?? { status: 'pending', note: '' }), ...patch }
+      })
     },
 
     setKeepGps(keep) {

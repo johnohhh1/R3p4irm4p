@@ -64,6 +64,7 @@ export interface TemplateSpec {
 }
 
 const SPECS: Record<TemplateId, TemplateSpec> = {
+  'winter-preparation': { id: 'winter-preparation', title: 'WINTER PREPARATION', pricing: false, contractorBlock: false, signOff: false, requestedByLabel: 'Prepared by', worksheetTitle: 'PREPARATION CHECKLIST', signOffLines: [] },
   'repair-request': {
     id: 'repair-request',
     title: 'REPAIR REQUEST',

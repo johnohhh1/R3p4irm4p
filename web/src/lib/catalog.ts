@@ -238,6 +238,7 @@ const AREAS: Record<SubjectId, string[]> = {
     'Entry', 'Main floor', 'Back of house', 'Storage', 'Restrooms',
     'Exterior', 'Roof', 'Mechanical',
   ],
+  winterization: ['Exterior', 'Mechanical room', 'Restrooms', 'Front vestibule'],
   other: ['Entry', 'Main area', 'Back area', 'Storage', 'Restrooms', 'Exterior'],
   rollout: [
     'Front counter', 'Host stand', 'Bar', 'Expo', 'Cook line', 'Dish area',
@@ -263,11 +264,13 @@ export const SUBJECT_ISSUE_SETS: Record<SubjectId, IssueSetId[]> = {
   bid: ['floors', 'walls', 'finish'],
   other: ['floors', 'walls'],
   // Validation walks do not use problem families; the item is typed per spot.
+  winterization: [],
   rollout: [],
   placement: [],
 }
 
 export const TEMPLATE_NAMES: Record<TemplateId, string> = {
+  'winter-preparation': 'Winter preparation',
   'repair-request': 'Repair request',
   'scope-bid': 'Scope & bid worksheet',
   'condition-report': 'Condition report',
@@ -283,6 +286,7 @@ const REPAIR_TEMPLATES: TemplateId[] = [
 
 /** The templates that make sense for this kind of walk. */
 export function templatesFor(subject: SubjectId): TemplateId[] {
+  if (subject === 'winterization') return ['winter-preparation']
   if (subject === 'rollout') return ['rollout-validation']
   if (subject === 'placement') return ['placement-validation']
   return REPAIR_TEMPLATES

@@ -5,6 +5,7 @@ import { statusesFor, TEMPLATE_NAMES } from '../lib/catalog'
 import { exportProject } from '../lib/rmap'
 import { downloadBlob, safeFilename } from '../lib/util'
 import { labCopy as c } from '../lib/labCopy'
+import { WinterChecklist } from './WinterChecklist'
 import { WalkOverview } from './WalkOverview'
 import { isValidation } from '../lib/catalog'
 import { PlanStage } from './PlanStage'
@@ -140,8 +141,8 @@ export function Workspace() {
         </div>
       </header>
 
-      <WalkOverview />
-      {project.plan && (
+      {project.subject !== 'winterization' && <WalkOverview />}
+      {project.subject !== 'winterization' && project.plan && (
         <div className="banner">
           <span className="grow">
             {project.plan.name}
@@ -165,7 +166,7 @@ export function Workspace() {
         </div>
       )}
 
-      <main className="work">
+      {project.subject === 'winterization' ? <WinterChecklist /> : <main className="work">
         <PlanStage />
         <aside className="side" aria-label="Photos and spots">
           <button className="sheet-toggle" aria-expanded={sheetOpen} onClick={() => { if (sheetOpen) useApp.getState().select(null); setSheetOpen(!sheetOpen) }}><span aria-hidden="true" />{sheetOpen ? c.map : c.details}</button>
@@ -199,7 +200,7 @@ export function Workspace() {
             <PinList />
           )}
         </aside>
-      </main>
+      </main>}
 
       {!project.onboarded && <Onboarding />}
       {reportOpen && <ReportDialog onClose={() => setReportOpen(false)} />}

@@ -158,3 +158,10 @@ copying or distribution without written permission.
 Map thumbnails, site and repair search, mobile detail sheets, camera actions near the area name, and photo/checklist progress are now part of the main app. The interface uses the supplied Chili's-inspired navy/red/cream style. Descriptor images can be marked as references in Photos to place; these remain in the project and .rmap backup without counting as unfinished placement. They can be moved back at any time.
 
 Existing browser storage and the production URL are preserved. To continue a desktop walk on a phone, save its .rmap backup and open it on the phone. There is no automatic device sync. PDF styling and generation are unchanged.
+
+
+### Winter preparation
+
+Create a site and choose **Winterization procedures - preparation**. This checklist includes all 12 items in the supplied Restaurant Winter Weatherization & Extreme Weather Procedures, updated 11.18.2025, page 1, PREPARATION (including its Mechanical Room subsection). Closing-manager, opening-manager and work-order escalation procedures are excluded. Ice-melt and snow-clearing standards remain as seasonal readiness items because they appear under Preparation.
+
+Each item starts Not started and supports Complete, Needs attention, Not applicable, and notes. N/A is counted separately from completion. Results autosave and travel in .rmap backups; reusing the checklist for another site resets results. Generate report exports the full preparation checklist and recorded results without requiring a floor plan. Existing repair/validation reports retain their paths.

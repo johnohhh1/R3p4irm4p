@@ -22,7 +22,7 @@ export function Onboarding() {
   const pickSubject = (id: SubjectId) => {
     // Validation walks have their own statuses and a single report, so the
     // problem-family and audience questions do not apply.
-    if (isValidation(id)) {
+    if (isValidation(id) || id === 'winterization') {
       finish(id, [], templatesFor(id)[0])
       return
     }

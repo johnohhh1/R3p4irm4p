@@ -66,7 +66,7 @@ export function ProjectList() {
         <div className="cards">
           {visible.map((p) => (
             <div className="card" key={p.id}>
-              <button className="preview-open" aria-label={`Open ${p.name}`} onClick={() => void openProject(p.id)}><PlanPreview id={p.id} updatedAt={p.updatedAt} /><span className="preview-kind">{TEMPLATE_NAMES[p.template]}</span></button>
+              <button className="preview-open" aria-label={`Open ${p.name}`} onClick={() => void openProject(p.id)}><PlanPreview id={p.id} updatedAt={p.updatedAt} winter={p.subject === 'winterization'} /><span className="preview-kind">{TEMPLATE_NAMES[p.template]}</span></button>
               <div style={{ minWidth: 0 }}>
                 {renaming === p.id ? (
                   <input
@@ -90,8 +90,8 @@ export function ProjectList() {
                 )}
                 <div className="m">
                   {p.site ? `${p.site} · ` : ''}
-                  {copy.projects.counts(p.pinCount, p.photoCount)}
-                  {p.hasPlan ? '' : ` · ${copy.projects.noPlan}`}
+                  {p.subject === 'winterization' ? '12 preparation steps' : copy.projects.counts(p.pinCount, p.photoCount)}
+                  {p.hasPlan || p.subject === 'winterization' ? '' : ` · ${copy.projects.noPlan}`}
                 </div>
                 <div className="m">{copy.projects.updated(formatWhen(p.updatedAt))}</div>
               </div>
@@ -110,7 +110,7 @@ export function ProjectList() {
                 >
                   {copy.projects.rename}
                 </button>
-                {isValidation(p.subject) && (
+                {(isValidation(p.subject) || p.subject === 'winterization') && (
                   <button
                     type="button"
                     className="btn small"

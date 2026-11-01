@@ -47,6 +47,7 @@ export const copy = {
         { id: 'punchlist' as SubjectId, label: 'A construction punch list' },
         { id: 'bid' as SubjectId, label: 'A job I am bidding' },
         { id: 'rollout' as SubjectId, label: 'A rollout I need to validate' },
+        { id: 'winterization' as SubjectId, label: 'Winterization procedures - preparation' },
         { id: 'placement' as SubjectId, label: 'Sticker or product placement' },
         { id: 'other' as SubjectId, label: 'Something else' },
       ],

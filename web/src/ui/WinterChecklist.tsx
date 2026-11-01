@@ -1,8 +1,11 @@
+import { useState } from 'react'
+import { WinterEvidence } from './WinterEvidence'
 import { useApp } from '../lib/state'
 import { WINTER_SOURCE, WINTER_STEPS, WINTER_STATUSES, winterCounts } from '../lib/winter'
 import type { WinterResult } from '../lib/types'
 
-export function WinterChecklist({ onDocument }: { onDocument: (id: string) => void }) {
+export function WinterChecklist() {
+  const [evidence, setEvidence] = useState<{stepId:string;pinId?:string} | null>(null)
   const project = useApp(s => s.project)!
   const update = useApp(s => s.setWinterResult)
   const counts = winterCounts(project.winterPreparation)
@@ -19,10 +22,10 @@ export function WinterChecklist({ onDocument }: { onDocument: (id: string) => vo
         const result = project.winterPreparation?.[step.id] ?? { status: 'pending', note: '' }
         const pins = project.pins.filter(pin => pin.winterStepId === step.id)
         return <article key={step.id} className="winter-step">
-          <button className="btn small" onClick={() => onDocument(step.id)}>Document on floor plan</button>
-          <p className="meta">{pins.length} locations · {pins.reduce((n,p) => n + p.photoIds.length, 0)} photos</p>
-          {pins.map(pin => <button key={pin.id} className="btn small" onClick={() => { onDocument(''); useApp.getState().select(pin.id) }}>Open spot {pin.no}{pin.needsWorkOrder ? ' · Work order needed' : ''}</button>)}
           <h4>{WINTER_STEPS.indexOf(step) + 1}. {step.title}</h4><p>{step.text}</p>
+          <button className="btn primary" onClick={() => setEvidence({stepId:step.id})}>Add photos &amp; pin location</button>
+          <p className="meta">{pins.length} {pins.length === 1 ? 'location' : 'locations'} · {pins.reduce((n,p) => n + p.photoIds.length, 0)} photos</p>
+          {pins.map(pin => <button key={pin.id} className="btn small" onClick={() => setEvidence({stepId:step.id,pinId:pin.id})}>Open spot {pin.no}{pin.needsWorkOrder ? ' · Work order needed' : ''}</button>)}
           <div className="field"><label htmlFor={`winter-${step.id}`}>Status</label>
             <select id={`winter-${step.id}`} value={result.status} onChange={e => update(step.id, { status: e.target.value as WinterResult['status'] })}>
               {Object.entries(WINTER_STATUSES).map(([id,label]) => <option value={id} key={id}>{label}</option>)}
@@ -35,5 +38,6 @@ export function WinterChecklist({ onDocument }: { onDocument: (id: string) => vo
       })}
     </section>)}
     <p className="meta">Source: {WINTER_SOURCE}. All 12 preparation items included.</p>
+    {evidence && <WinterEvidence key={evidence.pinId ?? evidence.stepId} {...evidence} onClose={() => setEvidence(null)}/> }
   </main>
 }

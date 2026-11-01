@@ -144,7 +144,7 @@ export function Workspace() {
 
       {project.subject === 'winterization' ? <nav className="winter-nav" aria-label="Winter workspace">
         <button className="btn small" aria-pressed={winterView === 'checklist'} onClick={() => setWinterView('checklist')}>Preparation checklist</button>
-        <button className="btn small" aria-pressed={winterView === 'map'} onClick={() => setWinterView('map')}>Floor plan & photos</button>
+        <button className="btn small" aria-pressed={winterView === 'map'} onClick={() => setWinterView('map')}>View all map pins</button>
       </nav> : <WalkOverview />}
       {(project.subject !== 'winterization' || winterView === 'map') && project.plan && (
         <div className="banner">
@@ -170,10 +170,7 @@ export function Workspace() {
         </div>
       )}
 
-      {project.subject === 'winterization' && winterView === 'checklist' ? <WinterChecklist onDocument={id => {
-        setWinterView('map'); setSheetOpen(false); useApp.getState().select(null);
-        useApp.getState().arm(id ? { kind: 'pin', winterStepId: id } : null)
-      }} /> : <main className="work">
+      {project.subject === 'winterization' && winterView === 'checklist' ? <WinterChecklist /> : <main className="work">
         <PlanStage />
         <aside className="side" aria-label="Photos and spots">
           <button className="sheet-toggle" aria-expanded={sheetOpen} onClick={() => { if (sheetOpen) useApp.getState().select(null); setSheetOpen(!sheetOpen) }}><span aria-hidden="true" />{sheetOpen ? c.map : c.details}</button>

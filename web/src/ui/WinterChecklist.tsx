@@ -2,7 +2,7 @@ import { useApp } from '../lib/state'
 import { WINTER_SOURCE, WINTER_STEPS, WINTER_STATUSES, winterCounts } from '../lib/winter'
 import type { WinterResult } from '../lib/types'
 
-export function WinterChecklist() {
+export function WinterChecklist({ onDocument }: { onDocument: (id: string) => void }) {
   const project = useApp(s => s.project)!
   const update = useApp(s => s.setWinterResult)
   const counts = winterCounts(project.winterPreparation)
@@ -17,7 +17,11 @@ export function WinterChecklist() {
       <h3>{group}</h3>
       {WINTER_STEPS.filter(step => step.group === group).map(step => {
         const result = project.winterPreparation?.[step.id] ?? { status: 'pending', note: '' }
+        const pins = project.pins.filter(pin => pin.winterStepId === step.id)
         return <article key={step.id} className="winter-step">
+          <button className="btn small" onClick={() => onDocument(step.id)}>Document on floor plan</button>
+          <p className="meta">{pins.length} locations · {pins.reduce((n,p) => n + p.photoIds.length, 0)} photos</p>
+          {pins.map(pin => <button key={pin.id} className="btn small" onClick={() => { onDocument(''); useApp.getState().select(pin.id) }}>Open spot {pin.no}{pin.needsWorkOrder ? ' · Work order needed' : ''}</button>)}
           <h4>{WINTER_STEPS.indexOf(step) + 1}. {step.title}</h4><p>{step.text}</p>
           <div className="field"><label htmlFor={`winter-${step.id}`}>Status</label>
             <select id={`winter-${step.id}`} value={result.status} onChange={e => update(step.id, { status: e.target.value as WinterResult['status'] })}>

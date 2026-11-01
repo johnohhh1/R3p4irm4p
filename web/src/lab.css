@@ -191,3 +191,6 @@ h1,h2,h3 { font-family:'Roboto Slab',Rockwell,serif;font-weight:800;line-height:
 .winter-step p { line-height:1.6; }
 .winter-step select { max-width:320px; }
 @media(max-width:600px){.winter-work{padding:16px}.winter-step{padding:16px}}
+
+.winter-nav{display:flex;gap:10px;padding:12px 24px;background:var(--panel);border-bottom:1px solid var(--line)}
+.winter-nav [aria-pressed=true]{background:var(--ink);color:var(--panel)}

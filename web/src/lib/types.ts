@@ -45,6 +45,9 @@ export interface Plan {
 }
 
 export interface Pin {
+  winterStepId?: string
+  needsWorkOrder?: boolean
+  workOrder?: string
   id: string
   /** Assigned once, never reused, never renumbered. */
   no: number

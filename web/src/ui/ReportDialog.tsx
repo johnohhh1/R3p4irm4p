@@ -56,7 +56,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal onClose={onClose} wide label={copy.report.heading}>
       <h2>{copy.report.heading}</h2>
-      <p className="help">{blocked ?? (project.subject === 'winterization' ? 'All 12 preparation steps, their statuses, and notes. No floor plan required.' : copy.report.ready(project.pins.length, photoCount))}</p>
+      <p className="help">{blocked ?? (project.subject === 'winterization' ? 'Preparation checklist, marked floor plan when added, and location photos with work-order notes.' : copy.report.ready(project.pins.length, photoCount))}</p>
 
       <div className="rgrid">
         <div className="field wide">

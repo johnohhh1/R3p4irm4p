@@ -30,6 +30,7 @@ export function Workspace() {
   const say = useApp((s) => s.say)
   const renameProject = useApp((s) => s.renameProject)
 
+  const [winterView, setWinterView] = useState<'checklist' | 'map'>('checklist')
   const [sheetOpen, setSheetOpen] = useState(false)
   const armed = useApp(s => s.armed)
   useEffect(() => { if (selectedPinId) setSheetOpen(true) }, [selectedPinId])
@@ -141,8 +142,11 @@ export function Workspace() {
         </div>
       </header>
 
-      {project.subject !== 'winterization' && <WalkOverview />}
-      {project.subject !== 'winterization' && project.plan && (
+      {project.subject === 'winterization' ? <nav className="winter-nav" aria-label="Winter workspace">
+        <button className="btn small" aria-pressed={winterView === 'checklist'} onClick={() => setWinterView('checklist')}>Preparation checklist</button>
+        <button className="btn small" aria-pressed={winterView === 'map'} onClick={() => setWinterView('map')}>Floor plan & photos</button>
+      </nav> : <WalkOverview />}
+      {(project.subject !== 'winterization' || winterView === 'map') && project.plan && (
         <div className="banner">
           <span className="grow">
             {project.plan.name}
@@ -166,7 +170,10 @@ export function Workspace() {
         </div>
       )}
 
-      {project.subject === 'winterization' ? <WinterChecklist /> : <main className="work">
+      {project.subject === 'winterization' && winterView === 'checklist' ? <WinterChecklist onDocument={id => {
+        setWinterView('map'); setSheetOpen(false); useApp.getState().select(null);
+        useApp.getState().arm(id ? { kind: 'pin', winterStepId: id } : null)
+      }} /> : <main className="work">
         <PlanStage />
         <aside className="side" aria-label="Photos and spots">
           <button className="sheet-toggle" aria-expanded={sheetOpen} onClick={() => { if (sheetOpen) useApp.getState().select(null); setSheetOpen(!sheetOpen) }}><span aria-hidden="true" />{sheetOpen ? c.map : c.details}</button>

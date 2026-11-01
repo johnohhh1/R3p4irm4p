@@ -173,10 +173,14 @@ export const RESULT_COLORS: Record<string, string> = {
 }
 
 export function isValidation(subject: SubjectId): boolean {
-  return subject === 'rollout' || subject === 'placement'
+  return subject === 'winterization' || subject === 'rollout' || subject === 'placement'
 }
 
 export function statusesFor(subject: SubjectId): StatusDef[] {
+  if (subject === 'winterization') return [
+    { id: PENDING, label: 'Not checked' }, { id: VERIFIED, label: 'Validated' },
+    { id: MISSING, label: 'Missing' }, { id: WRONG, label: 'Needs attention' },
+  ]
   if (subject === 'rollout') return STATUS_ROLLOUT
   if (subject === 'placement') return STATUS_PLACEMENT
   return subject === 'punchlist' ? STATUS_PUNCHLIST : STATUS_DEFAULT

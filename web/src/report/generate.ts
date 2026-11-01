@@ -3,6 +3,7 @@
  * anywhere. Page order and layout are ported from tools/build_pdf.py, which
  * stays in the repo as the reference the output is checked against.
  */
+import { WINTER_STEPS } from '../lib/winter'
 import { winterReport } from './winter'
 import { PDFDocument, StandardFonts, type PDFImage } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
@@ -97,8 +98,19 @@ export async function generateReport(
   const fonts = await embedFonts(doc)
   // Everything below draws from this copy, so no typed or pasted character can
   // stop the report being built.
-  const project = printableProject(input, drawable(Object.values(fonts)))
-  if (project.subject === 'winterization') return winterReport(project, doc, fonts)
+  const winter = input.subject === 'winterization'
+  const reportInput = winter ? { ...input, pins: input.pins.map(pin => ({ ...pin,
+    issue: WINTER_STEPS.find(step => step.id === pin.winterStepId)?.title || pin.issue || 'Other winter finding',
+    note: [pin.note, pin.needsWorkOrder ? 'WORK ORDER NEEDED' : '', pin.workOrder ? `Work-order reference: ${pin.workOrder}` : ''].filter(Boolean).join(' | '),
+  })) } : input
+  const project = printableProject(reportInput, drawable(Object.values(fonts)))
+  if (winter) {
+    await winterReport(project, doc, fonts)
+    if (!project.plan) {
+      const bytes = await doc.save()
+      return new Blob([bytes as unknown as BlobPart], { type: 'application/pdf' })
+    }
+  }
   if (!project.plan) throw new Error('no plan')
 
   const spec = specFor(project.template)
@@ -120,7 +132,7 @@ export async function generateReport(
     .filter(Boolean)
     .join(' · ')
 
-  const ctx: Ctx = { doc, fonts, theme, pageNo: 0, site, byline }
+  const ctx: Ctx = { doc, fonts, theme, pageNo: doc.getPageCount(), site, byline }
 
   onProgress?.('plan', 0, total + 3)
 
@@ -135,7 +147,8 @@ export async function generateReport(
   const logo = await embedLogo(doc, store, project.report.logoBlobId)
 
   /* ------------------------------------------------------------------ cover */
-  if (spec.validation) validationCover(ctx, project, pins, logo, spec)
+  if (winter) { /* preparation pages already rendered */ }
+  else if (spec.validation) validationCover(ctx, project, pins, logo, spec)
   else cover(ctx, project, pins, photoCount, logo, spec.title)
 
   /* ------------------------------------------------------------ marked plan */
@@ -164,14 +177,14 @@ export async function generateReport(
   if (spec.validation) {
     /* ------------------------------------------------------------ checklist */
     onProgress?.('checklist', 2, total + 3)
-    checklist(ctx, project, pins, spec)
+    if (!winter) checklist(ctx, project, pins, spec)
 
     /* ----------------------------- a page for every spot that has anything */
     // Same pages as the repair report: each spot's photos large, its item, its
     // result in colour, and where it sits on the plan. Walking order, like
     // every other page. A spot with no result and no photo is only a line on
     // the checklist; everything else gets its page.
-    const shown = pins.filter(({ pin }) => pin.status !== PENDING || pin.photoIds.length)
+    const shown = pins.filter(({ pin }) => winter || pin.status !== PENDING || pin.photoIds.length)
     for (let i = 0; i < shown.length; i++) {
       const { pin, stop } = shown[i]
       onProgress?.('spots', 3 + i, total + 3)

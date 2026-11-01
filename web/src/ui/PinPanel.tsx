@@ -1,3 +1,4 @@
+import { WINTER_STEPS } from '../lib/winter'
 import { useMemo } from 'react'
 import { useApp } from '../lib/state'
 import { beginPhotoDrag } from '../lib/drag'
@@ -106,6 +107,16 @@ export function PinPanel({ pinId, onZoom }: { pinId: string; onZoom: (photoId: s
           {gallery.input}
         </div>
 
+      {project.subject === 'winterization' && <>
+        <div className="field"><label htmlFor="winter-link">Preparation item</label>
+          <select id="winter-link" value={pin.winterStepId ?? ''} onChange={e => updatePin(pin.id, { winterStepId: e.target.value || undefined })}>
+            <option value="">Other winter finding</option>
+            {WINTER_STEPS.map(step => <option key={step.id} value={step.id}>{step.title}</option>)}
+          </select>
+        </div>
+        <div className="field"><label><input type="checkbox" checked={pin.needsWorkOrder ?? false} onChange={e => updatePin(pin.id, { needsWorkOrder: e.target.checked })}/> Work order needed</label></div>
+        <div className="field"><label htmlFor="work-order">Work-order number / reference</label><input id="work-order" value={pin.workOrder ?? ''} onChange={e => updatePin(pin.id, { workOrder: e.target.value })}/><p className="meta">Record the reference after opening the work order in your facilities system.</p></div>
+      </>}
       {validation ? (
         <>
           <div className="field">

@@ -66,7 +66,7 @@ export function ProjectList() {
         <div className="cards">
           {visible.map((p) => (
             <div className="card" key={p.id}>
-              <button className="preview-open" aria-label={`Open ${p.name}`} onClick={() => void openProject(p.id)}><PlanPreview id={p.id} updatedAt={p.updatedAt} winter={p.subject === 'winterization'} /><span className="preview-kind">{TEMPLATE_NAMES[p.template]}</span></button>
+              <button className="preview-open" aria-label={`Open ${p.name}`} onClick={() => void openProject(p.id)}><PlanPreview id={p.id} updatedAt={p.updatedAt} winter={p.subject === 'winterization' && !p.hasPlan} /><span className="preview-kind">{TEMPLATE_NAMES[p.template]}</span></button>
               <div style={{ minWidth: 0 }}>
                 {renaming === p.id ? (
                   <input

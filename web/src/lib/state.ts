@@ -19,6 +19,7 @@ import { localStore } from './localStore'
 import { isQuotaError, type ProjectStore } from './store'
 import { blobUrl, releaseAll, releaseUrl } from './blobUrls'
 import { copy } from './copy'
+import { WINTER_STEPS } from './winter'
 import { isValidation, issuesFor, statusesFor, SUBJECT_ISSUE_SETS, templatesFor } from './catalog'
 import { clamp, nowIso, todayIso, uid } from './util'
 import { loadPlan, type LoadedPlan } from './plan'
@@ -30,7 +31,7 @@ export type Route = { name: 'projects' } | { name: 'project'; id: string }
 /** What the tray is carrying, for tap-then-tap on a phone and click-to-place. */
 export type Armed =
   | { kind: 'photos'; ids: string[] }
-  | { kind: 'pin' }
+  | { kind: 'pin'; winterStepId?: string }
   | null
 
 export interface ImportProgress {
@@ -349,6 +350,8 @@ export const useApp = create<AppState>((set, get) => {
           ...pin,
           status: statuses[0]?.id ?? pin.status,
           note: '',
+          needsWorkOrder: false,
+          workOrder: '',
           photoIds: [],
           createdAt: now,
           updatedAt: now,
@@ -561,6 +564,8 @@ export const useApp = create<AppState>((set, get) => {
       const statuses = statusesFor(project.subject)
       const first = photoIds[0] ? project.photos.find((p) => p.id === photoIds[0]) : undefined
       const id = uid('k')
+      const armed = get().armed
+      const winterStepId = armed?.kind === 'pin' ? armed.winterStepId : undefined
       // A rollout is usually one thing checked at many spots, so a new spot starts
       // with whatever the last spot was checking. Setting up 40 stickers is 40 taps.
       const lastItem = isValidation(project.subject)
@@ -570,11 +575,12 @@ export const useApp = create<AppState>((set, get) => {
         const pin: Pin = {
           id,
           no: d.nextNo,
+          winterStepId,
           x: clamp(x, 0, 1),
           y: clamp(y, 0, 1),
           // A new pin borrows its name from the photo that made it, as the prototype does.
           area: first ? titleCase(first.name.replace(/[_-]?\d+$/, '').replace(/[_-]+/g, ' ')) : '',
-          issue: lastItem ?? issues[0]?.id ?? 'other',
+          issue: WINTER_STEPS.find(step => step.id === winterStepId)?.title ?? lastItem ?? issues[0]?.id ?? 'other',
           status: statuses[0]?.id ?? 'open',
           note: '',
           photoIds: [...photoIds],

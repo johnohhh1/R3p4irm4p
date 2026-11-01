@@ -5,8 +5,8 @@ import { M, PH, PW, Sheet, wrap, type Fonts } from './page'
 import { themeFor } from './theme'
 import { drawable, printable } from './printable'
 
-/** Checklist-only report: no fabricated map positions or implied inspections. */
-export async function winterReport(project: Project, doc: PDFDocument, fonts: Fonts): Promise<Blob> {
+/** Preparation pages; the shared report pipeline appends the real map and evidence. */
+export async function winterReport(project: Project, doc: PDFDocument, fonts: Fonts): Promise<void> {
   const theme = themeFor(project.report.accent)
   const allowed = drawable(Object.values(fonts))
   const clean = (value: string) => printable(value, allowed)
@@ -44,12 +44,23 @@ export async function winterReport(project: Project, doc: PDFDocument, fonts: Fo
     paragraph(step.text)
     const result = project.winterPreparation?.[step.id]
     paragraph(`Status: ${WINTER_STATUSES[result?.status ?? 'pending']}`, true)
+    const pins = project.pins.filter(pin => pin.winterStepId === step.id)
+    if (pins.length) paragraph(`Evidence spots: ${pins.map(pin => pin.no).join(', ')} | ${pins.reduce((n,pin) => n + pin.photoIds.length, 0)} photos`)
     if (result?.note) paragraph(`Notes: ${result.note}`)
     y -= 7
+  }
+  const followUps = project.pins.filter(pin => pin.needsWorkOrder || pin.workOrder)
+  if (followUps.length) {
+    newPage()
+    paragraph('WORK-ORDER FOLLOW-UP', true, 16)
+    for (const pin of followUps) {
+      paragraph(`Spot ${pin.no}: ${pin.area || 'Unnamed location'}`, true)
+      paragraph(pin.issue)
+      paragraph(pin.note)
+    }
   }
   if (project.report.findings) { paragraph('FINDINGS / FOLLOW-UP', true); paragraph(project.report.findings) }
   paragraph(`Source: ${WINTER_SOURCE}`, false, 8)
   paragraph('Statuses and notes are recorded by the preparer; this report does not independently verify completion.', false, 8)
-  const bytes = await doc.save()
-  return new Blob([bytes as unknown as BlobPart], {type:'application/pdf'})
+
 }
